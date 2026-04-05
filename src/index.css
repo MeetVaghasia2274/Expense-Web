@@ -1,0 +1,356 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── CSS Custom Properties ───────────────────────────────────── */
+:root {
+  --bg-primary:    #0D1117;
+  --bg-secondary:  #161B22;
+  --bg-tertiary:   #21262D;
+  --accent:        #2DD4BF;
+  --accent-dim:    #1A9E8F;
+  --text-primary:  #F0F6FC;
+  --text-secondary:#8B949E;
+  --text-amount:   #2DD4BF;
+  --danger:        #F85149;
+  --success:       #3FB950;
+  --border:        #30363D;
+}
+
+/* ─── Base Reset ──────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+  /* outer gutter on desktop */
+  display: flex;
+  justify-content: center;
+}
+
+#root {
+  width: 100%;
+  max-width: 430px;
+  position: relative;
+  background-color: var(--bg-primary);
+  min-height: 100%;
+}
+
+/* ─── Scrollbar ───────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+/* ─── Safe area helpers ───────────────────────────────────────── */
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.safe-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+/* ─── Amount display ──────────────────────────────────────────── */
+.amount-display {
+  font-family: 'JetBrains Mono', monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 56px;
+  font-weight: 700;
+  color: var(--text-amount);
+  line-height: 1;
+  letter-spacing: -1px;
+}
+
+/* ─── Bottom Sheet ────────────────────────────────────────────── */
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  z-index: 99;
+  pointer-events: none;
+}
+.sheet-backdrop.open {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.sheet {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%) translateY(100%);
+  width: 100%;
+  max-width: 430px;
+  background: var(--bg-secondary);
+  border-radius: 20px 20px 0 0;
+  transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+  z-index: 100;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.sheet.open {
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ─── Number Pad ──────────────────────────────────────────────── */
+.numpad-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 60px;
+  border-radius: 12px;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  font-size: 22px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: background 0.12s ease, transform 0.08s ease;
+  user-select: none;
+}
+.numpad-btn:active {
+  background: var(--border);
+  transform: scale(0.94);
+}
+
+/* ─── Category Grid ───────────────────────────────────────────── */
+.cat-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 4px;
+  border-radius: 12px;
+  background: var(--bg-tertiary);
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+  min-height: 72px;
+}
+.cat-btn.selected {
+  border-color: var(--accent);
+  background: rgba(45, 212, 191, 0.08);
+}
+.cat-emoji {
+  font-size: 26px;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: var(--bg-primary);
+  transition: background 0.15s ease;
+}
+.cat-btn.selected .cat-emoji {
+  background: rgba(45, 212, 191, 0.15);
+}
+.cat-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-align: center;
+  line-height: 1.2;
+}
+.cat-btn.selected .cat-label {
+  color: var(--accent);
+}
+
+/* ─── Payment Chips ───────────────────────────────────────────── */
+.payment-chip {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 50px;
+  border: 1.5px solid var(--border);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  min-height: 44px;
+}
+.payment-chip.selected {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #0D1117;
+  font-weight: 600;
+}
+
+/* ─── FAB ─────────────────────────────────────────────────────── */
+.fab {
+  position: fixed;
+  bottom: calc(72px + env(safe-area-inset-bottom, 0px) + 16px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #0D1117;
+  font-size: 30px;
+  font-weight: 300;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 24px rgba(45, 212, 191, 0.4);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  z-index: 40;
+}
+.fab:active {
+  transform: translateX(-50%) scale(0.92);
+  box-shadow: 0 2px 12px rgba(45, 212, 191, 0.25);
+}
+
+/* ─── Save Button ─────────────────────────────────────────────── */
+.save-btn {
+  width: 100%;
+  padding: 16px;
+  border-radius: 14px;
+  background: var(--accent);
+  color: #0D1117;
+  font-size: 16px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease;
+  min-height: 52px;
+}
+.save-btn:active {
+  background: var(--accent-dim);
+  transform: scale(0.98);
+}
+.save-btn:disabled {
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  cursor: not-allowed;
+}
+
+/* ─── Bottom Nav ──────────────────────────────────────────────── */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 430px;
+  height: calc(64px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border);
+  display: flex;
+  z-index: 30;
+}
+.nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: color 0.15s ease;
+  min-height: 48px;
+}
+.nav-item.active {
+  color: var(--accent);
+}
+.nav-icon {
+  font-size: 22px;
+  line-height: 1;
+}
+
+/* ─── Expense Row ─────────────────────────────────────────────── */
+.expense-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--bg-secondary);
+  border-radius: 14px;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s ease;
+}
+.expense-row:active {
+  background: var(--bg-tertiary);
+}
+.expense-emoji-wrap {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  flex-shrink: 0;
+}
+
+/* ─── Toast ───────────────────────────────────────────────────── */
+@keyframes toastIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes toastOut {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+.toast {
+  position: fixed;
+  bottom: calc(90px + env(safe-area-inset-bottom, 0px));
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--success);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 10px 20px;
+  border-radius: 50px;
+  z-index: 200;
+  animation: toastIn 0.25s ease forwards;
+  white-space: nowrap;
+}
+
+/* ─── Swipe-to-delete ─────────────────────────────────────────── */
+.swipe-wrapper {
+  position: relative;
+  overflow: hidden;
+  border-radius: 14px;
+}
+.delete-reveal {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 80px;
+  background: var(--danger);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  font-size: 20px;
+}
