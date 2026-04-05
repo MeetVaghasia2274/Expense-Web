@@ -1,0 +1,262 @@
+import { useEffect, useMemo, useState } from 'react';
+import {
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell, Legend,
+} from 'recharts';
+import { useStore } from '../lib/store';
+import { getExpensesByMonth } from '../lib/db';
+import type { Category, Expense } from '../types/expense';
+import { CATEGORY_META } from '../types/expense';
+import BottomNav from '../components/BottomNav';
+import ExpenseRow from '../components/ExpenseRow';
+import LogSheet from '../components/LogSheet';
+
+const CATEGORY_COLORS: Record<Category, string> = {
+  food:      '#FB923C',
+  transport: '#60A5FA',
+  shopping:  '#A78BFA',
+  groceries: '#34D399',
+  health:    '#F87171',
+  other:     '#9CA3AF',
+};
+
+function getMonthLabel(year: number, month: number): string {
+  return new Date(year, month, 1).toLocaleDateString('en-IN', {
+    month: 'short',
+    year: '2-digit',
+  });
+}
+
+// Custom tooltip for bar chart
+const BarTooltip = ({ active, payload }: { active?: boolean; payload?: { value: number }[] }) => {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="bg-bg-secondary border border-border rounded-xl px-3 py-2 text-[13px]">
+      <span className="text-accent font-semibold">
+        ₹{payload[0].value.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+      </span>
+    </div>
+  );
+};
+
+export default function TrendsScreen() {
+  const expenses     = useStore((s) => s.expenses);
+  const loadExpenses = useStore((s) => s.loadExpenses);
+  const toastMessage = useStore((s) => s.toastMessage);
+
+  useEffect(() => { loadExpenses(); }, [loadExpenses]);
+
+  // ── Month navigation ────────────────────────────────
+  const now = new Date();
+  const [viewYear, setViewYear]   = useState(now.getFullYear());
+  const [viewMonth, setViewMonth] = useState(now.getMonth());
+  const [monthExpenses, setMonthExpenses] = useState<Expense[]>([]);
+
+  useEffect(() => {
+    getExpensesByMonth(viewYear, viewMonth).then(setMonthExpenses);
+  }, [viewYear, viewMonth, expenses]); // re-fetch when global list changes
+
+  const monthLabel = new Date(viewYear, viewMonth, 1).toLocaleDateString('en-IN', {
+    month: 'long',
+    year: 'numeric',
+  });
+
+  const prevMonth = () => {
+    if (viewMonth === 0) { setViewYear((y) => y - 1); setViewMonth(11); }
+    else setViewMonth((m) => m - 1);
+  };
+  const nextMonth = () => {
+    const isCurrentMonth = viewYear === now.getFullYear() && viewMonth === now.getMonth();
+    if (isCurrentMonth) return;
+    if (viewMonth === 11) { setViewYear((y) => y + 1); setViewMonth(0); }
+    else setViewMonth((m) => m + 1);
+  };
+
+  const monthTotal = monthExpenses.reduce((s, e) => s + e.amount, 0);
+  const isCurrentMonth = viewYear === now.getFullYear() && viewMonth === now.getMonth();
+
+  // ── Last 6 months for bar chart ─────────────────────
+  const [barData, setBarData] = useState<{ name: string; total: number }[]>([]);
+  useEffect(() => {
+    async function fetchBars() {
+      const results = [];
+      for (let i = 5; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const data = await getExpensesByMonth(d.getFullYear(), d.getMonth());
+        results.push({
+          name: getMonthLabel(d.getFullYear(), d.getMonth()),
+          total: data.reduce((s, e) => s + e.amount, 0),
+        });
+      }
+      return results;
+    }
+    fetchBars().then(setBarData);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [expenses]);
+
+  // ── Category donut ──────────────────────────────────
+  const pieData = useMemo(() => {
+    const map: Partial<Record<Category, number>> = {};
+    for (const e of monthExpenses) {
+      map[e.category] = (map[e.category] ?? 0) + e.amount;
+    }
+    return Object.entries(map)
+      .map(([cat, value]) => ({
+        name: CATEGORY_META[cat as Category].label,
+        value: value ?? 0,
+        color: CATEGORY_COLORS[cat as Category],
+      }))
+      .sort((a, b) => b.value - a.value);
+  }, [monthExpenses]);
+
+  // ── Group by date ────────────────────────────────────
+  const grouped = useMemo(() => {
+    const map = new Map<string, Expense[]>();
+    for (const e of monthExpenses) {
+      const d = new Date(e.createdAt);
+      const key = d.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(e);
+    }
+    return Array.from(map.entries());
+  }, [monthExpenses]);
+
+  return (
+    <div className="flex flex-col min-h-full pb-[80px] overflow-x-hidden">
+
+      {/* Month selector */}
+      <div className="flex items-center justify-between px-4 pt-4 pb-2">
+        <button
+          onClick={prevMonth}
+          className="w-10 h-10 flex items-center justify-center rounded-full bg-bg-tertiary text-text-primary text-lg"
+          aria-label="Previous month"
+          id="prev-month-btn"
+        >
+          ‹
+        </button>
+        <h1 className="text-text-primary font-semibold text-[17px]">{monthLabel}</h1>
+        <button
+          onClick={nextMonth}
+          disabled={isCurrentMonth}
+          className="w-10 h-10 flex items-center justify-center rounded-full bg-bg-tertiary text-lg disabled:opacity-30"
+          aria-label="Next month"
+          id="next-month-btn"
+        >
+          ›
+        </button>
+      </div>
+
+      {/* Total card */}
+      <div className="mx-4 mb-4 rounded-2xl bg-bg-secondary border border-border px-5 py-4">
+        <p className="text-text-secondary text-[12px] font-medium uppercase tracking-wide">Total spent</p>
+        <p className="text-accent font-mono font-bold text-[36px] mt-1 leading-none">
+          ₹{monthTotal.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+        </p>
+        <p className="text-text-secondary text-[12px] mt-1">
+          {monthExpenses.length} transaction{monthExpenses.length !== 1 ? 's' : ''}
+        </p>
+      </div>
+
+      {/* Bar chart — last 6 months */}
+      <div className="mx-4 mb-4 rounded-2xl bg-bg-secondary border border-border px-2 py-4">
+        <p className="text-text-secondary text-[12px] font-semibold uppercase tracking-wide px-3 mb-3">
+          Last 6 months
+        </p>
+        <ResponsiveContainer width="100%" height={160}>
+          <BarChart data={barData} barSize={20}>
+            <XAxis
+              dataKey="name"
+              tick={{ fill: '#8B949E', fontSize: 11 }}
+              axisLine={false}
+              tickLine={false}
+            />
+            <YAxis hide />
+            <Tooltip content={<BarTooltip />} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
+            <Bar dataKey="total" fill="#2DD4BF" radius={[6, 6, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* Category donut */}
+      {pieData.length > 0 && (
+        <div className="mx-4 mb-4 rounded-2xl bg-bg-secondary border border-border px-2 py-4">
+          <p className="text-text-secondary text-[12px] font-semibold uppercase tracking-wide px-3 mb-2">
+            By Category
+          </p>
+          <ResponsiveContainer width="100%" height={220}>
+            <PieChart>
+              <Pie
+                data={pieData}
+                cx="50%"
+                cy="50%"
+                innerRadius={55}
+                outerRadius={85}
+                paddingAngle={3}
+                dataKey="value"
+              >
+                {pieData.map((entry, i) => (
+                  <Cell key={i} fill={entry.color} />
+                ))}
+              </Pie>
+              <Legend
+                iconType="circle"
+                iconSize={8}
+                formatter={(value) => (
+                  <span style={{ color: '#8B949E', fontSize: 12 }}>{value}</span>
+                )}
+              />
+              <Tooltip
+                formatter={(val: number) => [
+                  `₹${val.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`,
+                  '',
+                ]}
+                contentStyle={{
+                  background: '#161B22',
+                  border: '1px solid #30363D',
+                  borderRadius: 12,
+                  fontSize: 13,
+                }}
+              />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
+      {/* Transaction list */}
+      {grouped.length > 0 ? (
+        <div className="flex flex-col gap-4 px-4 mb-4">
+          <p className="text-text-secondary text-[12px] font-semibold uppercase tracking-wide px-1">
+            Transactions
+          </p>
+          {grouped.map(([dateLabel, items]) => (
+            <div key={dateLabel}>
+              <div className="flex items-baseline justify-between mb-2 px-1">
+                <span className="text-text-secondary text-[13px] font-semibold">{dateLabel}</span>
+                <span className="text-text-secondary text-[13px]">
+                  ₹{items.reduce((s, e) => s + e.amount, 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                </span>
+              </div>
+              <div className="flex flex-col gap-2">
+                {items.map((e) => <ExpenseRow key={e.id} expense={e} />)}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="flex flex-col items-center justify-center gap-2 py-10 text-text-secondary">
+          <span className="text-[40px]">📭</span>
+          <p className="text-[14px]">No expenses this month</p>
+        </div>
+      )}
+
+      <BottomNav />
+      <LogSheet />
+
+      {toastMessage && (
+        <div className="toast" role="status" aria-live="polite">
+          ✓ {toastMessage}
+        </div>
+      )}
+    </div>
+  );
+}
