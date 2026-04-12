@@ -4,17 +4,33 @@
 
 /* ─── CSS Custom Properties ───────────────────────────────────── */
 :root {
-  --bg-primary:    #0D1117;
-  --bg-secondary:  #161B22;
-  --bg-tertiary:   #21262D;
-  --accent:        #2DD4BF;
-  --accent-dim:    #1A9E8F;
-  --text-primary:  #F0F6FC;
-  --text-secondary:#8B949E;
-  --text-amount:   #2DD4BF;
-  --danger:        #F85149;
-  --success:       #3FB950;
-  --border:        #30363D;
+  --bg-primary:    #ffffff;
+  --bg-secondary:  #f3f4f6;
+  --bg-tertiary:   #e5e7eb;
+  --accent:        #0d9488;
+  --accent-dim:    #0f766e;
+  --text-primary:  #111827;
+  --text-secondary:#6b7280;
+  --text-amount:   #0d9488;
+  --danger:        #ef4444;
+  --success:       #22c55e;
+  --border:        #d1d5db;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-primary:    #0D1117;
+    --bg-secondary:  #161B22;
+    --bg-tertiary:   #21262D;
+    --accent:        #2DD4BF;
+    --accent-dim:    #1A9E8F;
+    --text-primary:  #F0F6FC;
+    --text-secondary:#8B949E;
+    --text-amount:   #2DD4BF;
+    --danger:        #F85149;
+    --success:       #3FB950;
+    --border:        #30363D;
+  }
 }
 
 /* ─── Base Reset ──────────────────────────────────────────────── */
@@ -96,6 +112,8 @@ body {
   transform: translateX(-50%) translateY(100%);
   width: 100%;
   max-width: 430px;
+  max-height: 90svh;
+  overflow-y: auto;
   background: var(--bg-secondary);
   border-radius: 20px 20px 0 0;
   transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
