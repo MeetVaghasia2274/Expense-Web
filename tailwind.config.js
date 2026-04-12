@@ -4,16 +4,16 @@ export default {
   theme: {
     extend: {
       colors: {
-        'bg-primary':    '#0D1117',
-        'bg-secondary':  '#161B22',
-        'bg-tertiary':   '#21262D',
-        accent:          '#2DD4BF',
-        'accent-dim':    '#1A9E8F',
-        'text-primary':  '#F0F6FC',
-        'text-secondary':'#8B949E',
-        danger:          '#F85149',
-        success:         '#3FB950',
-        border:          '#30363D',
+        'bg-primary':    'var(--bg-primary)',
+        'bg-secondary':  'var(--bg-secondary)',
+        'bg-tertiary':   'var(--bg-tertiary)',
+        accent:          'var(--accent)',
+        'accent-dim':    'var(--accent-dim)',
+        'text-primary':  'var(--text-primary)',
+        'text-secondary':'var(--text-secondary)',
+        danger:          'var(--danger)',
+        success:         'var(--success)',
+        border:          'var(--border)',
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
