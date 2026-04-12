@@ -7,7 +7,10 @@ export default function MonthHeader({ month, total }: MonthHeaderProps) {
   const formatted = total.toLocaleString('en-IN', { maximumFractionDigits: 0 });
 
   return (
-    <div className="flex items-center justify-between px-4 pt-4 pb-2">
+    <div 
+      className="flex items-center justify-between px-4 pb-2"
+      style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 16px)' }}
+    >
       <h1 className="text-text-primary font-semibold text-[20px]">{month}</h1>
       <div className="flex flex-col items-end">
         <span className="text-text-secondary text-[11px] font-medium uppercase tracking-wide">
