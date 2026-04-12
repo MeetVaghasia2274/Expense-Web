@@ -163,16 +163,16 @@ export default function TrendsScreen() {
           Last 6 months
         </p>
         <ResponsiveContainer width="100%" height={160}>
-          <BarChart data={barData} barSize={20}>
+          <BarChart data={barData} barSize={20} style={{ outline: 'none' }}>
             <XAxis
               dataKey="name"
-              tick={{ fill: '#8B949E', fontSize: 11 }}
+              tick={{ fill: 'var(--text-secondary)', fontSize: 11 }}
               axisLine={false}
               tickLine={false}
             />
             <YAxis hide />
-            <Tooltip content={<BarTooltip />} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
-            <Bar dataKey="total" fill="#2DD4BF" radius={[6, 6, 0, 0]} />
+            <Tooltip content={<BarTooltip />} cursor={{ fill: 'rgba(128,128,128,0.1)' }} />
+            <Bar dataKey="total" fill="var(--accent)" radius={[6, 6, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -184,7 +184,7 @@ export default function TrendsScreen() {
             By Category
           </p>
           <ResponsiveContainer width="100%" height={220}>
-            <PieChart>
+            <PieChart style={{ outline: 'none' }}>
               <Pie
                 data={pieData}
                 cx="50%"
@@ -193,6 +193,7 @@ export default function TrendsScreen() {
                 outerRadius={85}
                 paddingAngle={3}
                 dataKey="value"
+                stroke="none"
               >
                 {pieData.map((entry, i) => (
                   <Cell key={i} fill={entry.color} />
@@ -202,7 +203,7 @@ export default function TrendsScreen() {
                 iconType="circle"
                 iconSize={8}
                 formatter={(value) => (
-                  <span style={{ color: '#8B949E', fontSize: 12 }}>{value}</span>
+                  <span style={{ color: 'var(--text-secondary)', fontSize: 12 }}>{value}</span>
                 )}
               />
               <Tooltip
@@ -211,11 +212,13 @@ export default function TrendsScreen() {
                   '',
                 ]}
                 contentStyle={{
-                  background: '#161B22',
-                  border: '1px solid #30363D',
+                  background: 'var(--bg-secondary)',
+                  border: '1px solid var(--border)',
                   borderRadius: 12,
                   fontSize: 13,
+                  color: 'var(--text-primary)'
                 }}
+                itemStyle={{ color: 'var(--text-primary)' }}
               />
             </PieChart>
           </ResponsiveContainer>
