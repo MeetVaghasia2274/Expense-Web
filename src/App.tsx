@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import HomeScreen from './screens/HomeScreen';
 import TrendsScreen from './screens/TrendsScreen';
+import SettingsScreen from './screens/SettingsScreen';
 
 // ── iOS "Add to Home Screen" banner ────────────────────────────
 function IOSInstallBanner() {
@@ -35,8 +36,8 @@ function IOSInstallBanner() {
         transform: 'translateX(-50%)',
         width: 'calc(100% - 32px)',
         maxWidth: '398px',
-        background: '#161B22',
-        border: '1px solid #30363D',
+        background: 'var(--bg-secondary)',
+        border: '1px solid var(--border)',
         borderRadius: '16px',
         padding: '14px 16px',
         display: 'flex',
@@ -49,10 +50,10 @@ function IOSInstallBanner() {
     >
       <span style={{ fontSize: 28, flexShrink: 0 }}>📲</span>
       <div style={{ flex: 1 }}>
-        <p style={{ color: '#F0F6FC', fontSize: 13, fontWeight: 600, margin: 0 }}>
+        <p style={{ color: 'var(--text-primary)', fontSize: 13, fontWeight: 600, margin: 0 }}>
           Install for the best experience
         </p>
-        <p style={{ color: '#8B949E', fontSize: 12, margin: '2px 0 0' }}>
+        <p style={{ color: 'var(--text-secondary)', fontSize: 12, margin: '2px 0 0' }}>
           Tap <strong>Share</strong> → <strong>Add to Home Screen</strong>
         </p>
       </div>
@@ -61,7 +62,7 @@ function IOSInstallBanner() {
         style={{
           background: 'none',
           border: 'none',
-          color: '#8B949E',
+          color: 'var(--text-secondary)',
           fontSize: 20,
           cursor: 'pointer',
           padding: '4px',
@@ -83,6 +84,7 @@ export default function App() {
       <Routes>
         <Route path="/"        element={<HomeScreen />} />
         <Route path="/trends"  element={<TrendsScreen />} />
+        <Route path="/settings" element={<SettingsScreen />} />
       </Routes>
       <IOSInstallBanner />
     </BrowserRouter>
