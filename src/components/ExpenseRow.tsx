@@ -51,6 +51,7 @@ export default function ExpenseRow({ expense }: ExpenseRowProps) {
 
   const handleClick = () => {
     if (hasSwiped.current) return;
+    if (!window.confirm('Edit this expense?')) return;
     setExpenseToEdit(expense);
     openSheet();
   };
