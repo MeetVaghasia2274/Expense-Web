@@ -13,6 +13,8 @@ export default function LogSheet() {
   const sheetOpen    = useStore((s) => s.sheetOpen);
   const closeSheet   = useStore((s) => s.closeSheet);
   const addExpense   = useStore((s) => s.addExpense);
+  const updateExpense = useStore((s) => s.updateExpense);
+  const expenseToEdit = useStore((s) => s.expenseToEdit);
   const showToast    = useStore((s) => s.showToast);
   const lastCategory = useStore((s) => s.lastCategory);
   const lastPayment  = useStore((s) => s.lastPayment);
@@ -25,16 +27,24 @@ export default function LogSheet() {
   const [note, setNote]               = useState('');
   const [noteOpen, setNoteOpen]       = useState(false);
 
-  // Reset form whenever sheet opens with last-used defaults
+  // Reset form whenever sheet opens with last-used defaults or edit data
   useEffect(() => {
     if (sheetOpen) {
-      setRawAmount('0');
-      setCategory(lastCategory);
-      setPayment(lastPayment);
-      setNote('');
-      setNoteOpen(false);
+      if (expenseToEdit) {
+        setRawAmount(expenseToEdit.amount.toString());
+        setCategory(expenseToEdit.category);
+        setPayment(expenseToEdit.paymentMethod);
+        setNote(expenseToEdit.note || '');
+        setNoteOpen(!!expenseToEdit.note);
+      } else {
+        setRawAmount('0');
+        setCategory(lastCategory);
+        setPayment(lastPayment);
+        setNote('');
+        setNoteOpen(false);
+      }
     }
-  }, [sheetOpen, lastCategory, lastPayment]);
+  }, [sheetOpen, expenseToEdit, lastCategory, lastPayment]);
 
   // Lock body scroll while sheet is open
   useEffect(() => {
@@ -66,19 +76,33 @@ export default function LogSheet() {
 
   const handleSave = async () => {
     if (amountValue <= 0) return;
-    const expense = {
-      id: generateId(),
-      amount: amountValue,
-      category,
-      paymentMethod: payment,
-      note: note.trim() || undefined,
-      createdAt: new Date().toISOString(),
-    };
-    await addExpense(expense);
+    
+    if (expenseToEdit) {
+      const updatedExpense = {
+        ...expenseToEdit,
+        amount: amountValue,
+        category,
+        paymentMethod: payment,
+        note: note.trim() || undefined,
+      };
+      await updateExpense(updatedExpense);
+      showToast(`Updated ₹${displayAmount}`);
+    } else {
+      const expense = {
+        id: generateId(),
+        amount: amountValue,
+        category,
+        paymentMethod: payment,
+        note: note.trim() || undefined,
+        createdAt: new Date().toISOString(),
+      };
+      await addExpense(expense);
+      showToast(`Saved ₹${displayAmount}`);
+    }
+    
     setLastCategory(category);
     setLastPayment(payment);
     closeSheet();
-    showToast(`Saved ₹${displayAmount}`);
   };
 
   const handleCategoryChange = (c: Category) => setCategory(c);
@@ -158,7 +182,7 @@ export default function LogSheet() {
             disabled={amountValue <= 0}
             id="save-expense-btn"
           >
-            {amountValue > 0 ? `Save  ₹${displayAmount}` : 'Enter an amount'}
+            {amountValue > 0 ? (expenseToEdit ? `Update ₹${displayAmount}` : `Save  ₹${displayAmount}`) : 'Enter an amount'}
           </button>
         </div>
       </div>
