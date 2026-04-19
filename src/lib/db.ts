@@ -24,6 +24,11 @@ export async function insertExpense(expense: Expense): Promise<void> {
   await db.add(STORE, expense);
 }
 
+export async function updateExpense(expense: Expense): Promise<void> {
+  const db = await getDB();
+  await db.put(STORE, expense);
+}
+
 export async function getAllExpenses(): Promise<Expense[]> {
   const db = await getDB();
   const all = await db.getAll(STORE);
