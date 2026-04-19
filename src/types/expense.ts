@@ -15,6 +15,7 @@ export interface Expense {
   paymentMethod: PaymentMethod;
   note?: string;
   createdAt: string; // ISO 8601
+  deletedAt?: string; // ISO 8601
 }
 
 export const CATEGORY_META: Record<
