@@ -9,8 +9,12 @@ export default function SettingsScreen() {
   const loadExpenses = useStore((s) => s.loadExpenses);
   const showToast    = useStore((s) => s.showToast);
   const toastMessage = useStore((s) => s.toastMessage);
+  const deletedExpenses = useStore((s) => s.deletedExpenses);
+  const permanentlyDeleteExpense = useStore((s) => s.permanentlyDeleteExpense);
+  const restoreExpense = useStore((s) => s.restoreExpense);
   
   const [loading, setLoading] = useState(false);
+  const [showDeleted, setShowDeleted] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleExport = async () => {
@@ -145,6 +149,25 @@ export default function SettingsScreen() {
           </div>
         </section>
 
+        {/* Recently Deleted Section */}
+        <section>
+          <h2 className="text-text-secondary text-[12px] font-semibold uppercase tracking-wide mb-3 pl-1">
+            Trash
+          </h2>
+          <div className="bg-bg-secondary border border-border rounded-2xl overflow-hidden flex flex-col">
+            <button 
+              onClick={() => setShowDeleted(true)}
+              className="flex items-center justify-between px-4 py-4 text-left"
+            >
+              <div>
+                <p className="text-text-primary font-medium text-[15px]">Recently Deleted</p>
+                <p className="text-text-secondary text-[13px] mt-0.5">Recover or permanently delete items ({deletedExpenses.length})</p>
+              </div>
+              <span className="text-[20px]">🗑️</span>
+            </button>
+          </div>
+        </section>
+
       </div>
 
       <BottomNav />
@@ -153,6 +176,72 @@ export default function SettingsScreen() {
       {toastMessage && (
         <div className="toast" role="status" aria-live="polite">
           ✓ {toastMessage}
+        </div>
+      )}
+
+      {/* Full-screen Recently Deleted Overlay */}
+      {showDeleted && (
+        <div className="fixed inset-0 bg-bg-primary z-50 flex flex-col pb-[80px] overflow-y-auto">
+          <div 
+            className="flex items-center px-4 pb-4 border-b border-border bg-bg-primary sticky top-0"
+            style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 24px)' }}
+          >
+            <button 
+              onClick={() => setShowDeleted(false)}
+              className="w-10 h-10 flex items-center justify-center rounded-full bg-bg-tertiary text-text-primary text-lg mr-2"
+            >
+              ‹
+            </button>
+            <h1 className="text-text-primary font-semibold text-[20px]">Recently Deleted</h1>
+          </div>
+
+          <div className="flex-1 px-4 py-4">
+            {deletedExpenses.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-40 text-text-secondary">
+                <span className="text-[40px] mb-2">✨</span>
+                <p className="text-[14px]">Trash is empty</p>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-3">
+                <p className="text-text-secondary text-[13px] text-center mb-2">Items are permanently deleted after 7 days.</p>
+                {deletedExpenses.map((e) => (
+                  <div key={e.id} className="bg-bg-secondary border border-border rounded-xl p-3 flex flex-col gap-2">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="text-text-primary font-medium">{e.category} - {e.paymentMethod}</p>
+                        <p className="text-text-secondary text-[12px]">
+                          Deleted: {new Date(e.deletedAt!).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <span className="text-text-primary font-bold">₹{e.amount}</span>
+                    </div>
+                    <div className="flex gap-2 mt-2">
+                      <button 
+                        className="flex-1 py-2 bg-accent/10 text-accent rounded-lg font-medium text-[13px]"
+                        onClick={async () => {
+                          await restoreExpense(e.id);
+                          showToast('Expense restored');
+                        }}
+                      >
+                        Restore
+                      </button>
+                      <button 
+                        className="flex-1 py-2 bg-red-500/10 text-red-500 rounded-lg font-medium text-[13px]"
+                        onClick={async () => {
+                          if (confirm('Permanently delete this expense?')) {
+                            await permanentlyDeleteExpense(e.id);
+                            showToast('Permanently deleted');
+                          }
+                        }}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

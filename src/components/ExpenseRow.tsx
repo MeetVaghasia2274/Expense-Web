@@ -9,6 +9,8 @@ interface ExpenseRowProps {
 
 export default function ExpenseRow({ expense }: ExpenseRowProps) {
   const removeExpense = useStore((s) => s.removeExpense);
+  const setExpenseToEdit = useStore((s) => s.setExpenseToEdit);
+  const openSheet = useStore((s) => s.openSheet);
   const showToast = useStore((s) => s.showToast);
 
   const { emoji, label, color } = CATEGORY_META[expense.category];
@@ -16,28 +18,41 @@ export default function ExpenseRow({ expense }: ExpenseRowProps) {
 
   // ── Swipe to delete ────────────────────────────────
   const startX = useRef<number | null>(null);
+  const hasSwiped = useRef(false);
   const [offsetX, setOffsetX] = useState(0);
   const THRESHOLD = 72;
 
   const onTouchStart = (e: React.TouchEvent) => {
     startX.current = e.touches[0].clientX;
+    hasSwiped.current = false;
   };
 
   const onTouchMove = (e: React.TouchEvent) => {
     if (startX.current === null) return;
     const dx = e.touches[0].clientX - startX.current;
+    if (Math.abs(dx) > 10) hasSwiped.current = true;
     if (dx < 0) setOffsetX(Math.max(dx, -THRESHOLD - 20));
   };
 
   const onTouchEnd = () => {
     if (offsetX < -THRESHOLD) {
       // Delete
-      removeExpense(expense.id);
-      showToast('Expense deleted');
+      if (window.confirm('Are you sure you want to delete this expense?')) {
+        removeExpense(expense.id);
+        showToast('Expense deleted');
+      } else {
+        setOffsetX(0);
+      }
     } else {
       setOffsetX(0);
     }
     startX.current = null;
+  };
+
+  const handleClick = () => {
+    if (hasSwiped.current) return;
+    setExpenseToEdit(expense);
+    openSheet();
   };
 
   // Format amount
@@ -64,6 +79,7 @@ export default function ExpenseRow({ expense }: ExpenseRowProps) {
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
+        onClick={handleClick}
       >
         {/* Emoji icon */}
         <div className="expense-emoji-wrap" style={{ background: color }}>
