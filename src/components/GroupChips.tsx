@@ -10,7 +10,7 @@ interface GroupChipsProps {
 
 export default function GroupChips({ selected, onSelect }: GroupChipsProps) {
   const customGroups = useStore((s) => s.customGroups);
-  const addGroup     = useStore((s) => s.addGroup);
+  const addGroup = useStore((s) => s.addGroup);
   const [isAdding, setIsAdding] = useState(false);
   const [newLabel, setNewLabel] = useState('');
 
@@ -30,50 +30,55 @@ export default function GroupChips({ selected, onSelect }: GroupChipsProps) {
     await addGroup(newGroup);
     setNewLabel('');
     setIsAdding(false);
-    onSelect(id);
+    onSelect(newGroup.id);
   };
 
   return (
-    <div className="flex gap-2 px-4 overflow-x-auto no-scrollbar items-center">
-      {allGroups.map((group) => {
-        const isSelected = selected === group.id;
-        return (
-          <button
-            key={group.id}
-            className={`payment-chip ${isSelected ? 'selected' : ''}`}
-            onClick={() => onSelect(group.id)}
-            aria-pressed={isSelected}
-            aria-label={group.label}
-          >
-            <span>{group.emoji}</span>
-            <span>{group.label}</span>
-          </button>
-        );
-      })}
+    <div className="px-4">
+      <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
+        {allGroups.map((group) => {
+          const isSelected = selected === group.id;
+          return (
+            <button
+              key={group.id}
+              className={`group-chip ${isSelected ? 'selected' : ''}`}
+              onClick={() => onSelect(group.id)}
+            >
+              <span>{group.emoji}</span>
+              <span>{group.label}</span>
+            </button>
+          );
+        })}
 
-      {isAdding ? (
-        <div className="flex items-center gap-2 bg-bg-tertiary rounded-full px-3 py-1.5 border border-accent">
-          <input
-            autoFocus
-            type="text"
-            value={newLabel}
-            onChange={(e) => setNewLabel(e.target.value)}
-            onBlur={handleAdd}
-            onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
-            placeholder="Group name"
-            className="bg-transparent outline-none text-[13px] w-24 text-text-primary"
-          />
-        </div>
-      ) : (
-        <button
-          className="payment-chip border-dashed"
-          onClick={() => setIsAdding(true)}
-          aria-label="Add custom group"
-        >
-          <span>＋</span>
-          <span>New</span>
-        </button>
-      )}
+        {isAdding ? (
+          <div className="flex items-center gap-2">
+            <input
+              autoFocus
+              type="text"
+              value={newLabel}
+              onChange={(e) => setNewLabel(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
+              onBlur={() => !newLabel && setIsAdding(false)}
+              placeholder="Group name..."
+              className="bg-bg-tertiary border border-accent/30 rounded-full px-4 py-2 text-[13px] text-text-primary outline-none min-w-[120px]"
+            />
+            <button
+              onClick={handleAdd}
+              className="w-8 h-8 flex items-center justify-center rounded-full bg-accent text-bg-primary text-sm font-bold"
+            >
+              ✓
+            </button>
+          </div>
+        ) : (
+          <button
+            className="group-chip opacity-70 border-dashed border-border"
+            onClick={() => setIsAdding(true)}
+          >
+            <span>＋</span>
+            <span>New Group</span>
+          </button>
+        )}
+      </div>
     </div>
   );
 }

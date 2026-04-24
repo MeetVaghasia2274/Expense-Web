@@ -5,20 +5,19 @@ import {
 } from 'recharts';
 import { useStore } from '../lib/store';
 import { getExpensesByMonth } from '../lib/db';
-import type { Category, CustomGroup, Expense, Group } from '../types/expense';
-import { CATEGORY_META, GROUP_META, SYSTEM_GROUPS } from '../types/expense';
+import type { Category, Expense, Group } from '../types/expense';
+import { CATEGORY_META, SYSTEM_GROUPS } from '../types/expense';
 import BottomNav from '../components/BottomNav';
 import ExpenseRow from '../components/ExpenseRow';
 import LogSheet from '../components/LogSheet';
-import GroupChips from '../components/GroupChips';
 
 const CATEGORY_COLORS: Record<Category, string> = {
-  food:      '#FB923C',
+  food: '#FB923C',
   transport: '#60A5FA',
-  shopping:  '#A78BFA',
+  shopping: '#A78BFA',
   groceries: '#34D399',
-  health:    '#F87171',
-  other:     '#9CA3AF',
+  health: '#F87171',
+  other: '#9CA3AF',
 };
 
 function getMonthLabel(year: number, month: number): string {
@@ -41,21 +40,21 @@ const BarTooltip = ({ active, payload }: { active?: boolean; payload?: { value: 
 };
 
 export default function TrendsScreen() {
-  const expenses     = useStore((s) => s.expenses);
+  const expenses = useStore((s) => s.expenses);
   const customGroups = useStore((s) => s.customGroups);
   const loadExpenses = useStore((s) => s.loadExpenses);
-  const loadGroups   = useStore((s) => s.loadGroups);
-  const removeGroup  = useStore((s) => s.removeGroup);
+  const loadGroups = useStore((s) => s.loadGroups);
+  const removeGroup = useStore((s) => s.removeGroup);
   const toastMessage = useStore((s) => s.toastMessage);
 
-  useEffect(() => { 
+  useEffect(() => {
     loadExpenses();
     loadGroups();
   }, [loadExpenses, loadGroups]);
 
   // ── Month navigation ────────────────────────────────
   const now = new Date();
-  const [viewYear, setViewYear]   = useState(now.getFullYear());
+  const [viewYear, setViewYear] = useState(now.getFullYear());
   const [viewMonth, setViewMonth] = useState(now.getMonth());
   const [selectedGroup, setSelectedGroup] = useState<Group | 'all'>('all');
   const [monthExpenses, setMonthExpenses] = useState<Expense[]>([]);
@@ -80,7 +79,6 @@ export default function TrendsScreen() {
     else setViewMonth((m) => m + 1);
   };
 
-  const monthTotal = monthExpenses.reduce((s, e) => s + e.amount, 0);
   const isCurrentMonth = viewYear === now.getFullYear() && viewMonth === now.getMonth();
 
   // ── Last 6 months for bar chart ─────────────────────
@@ -99,14 +97,14 @@ export default function TrendsScreen() {
       return results;
     }
     fetchBars().then(setBarData);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [expenses]);
 
   // ── Category donut ──────────────────────────────────
   const pieData = useMemo(() => {
     const map: Partial<Record<Category, number>> = {};
-    const filtered = selectedGroup === 'all' 
-      ? monthExpenses 
+    const filtered = selectedGroup === 'all'
+      ? monthExpenses
       : monthExpenses.filter(e => e.group === selectedGroup);
 
     for (const e of filtered) {
@@ -125,12 +123,12 @@ export default function TrendsScreen() {
   const groupData = useMemo(() => {
     const map: Partial<Record<string, number>> = {};
     const allGroups = [...SYSTEM_GROUPS, ...customGroups];
-    
+
     for (const e of monthExpenses) {
       const g = e.group || 'personal';
       map[g] = (map[g] ?? 0) + e.amount;
     }
-    
+
     return allGroups
       .map((g) => ({
         id: g.id,
@@ -167,7 +165,7 @@ export default function TrendsScreen() {
     <div className="flex flex-col min-h-full pb-[80px] overflow-x-hidden">
 
       {/* Month selector */}
-      <div 
+      <div
         className="flex items-center justify-between px-4 pb-2"
         style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 16px)' }}
       >
@@ -217,8 +215,8 @@ export default function TrendsScreen() {
       {/* Total card */}
       <div className="mx-4 mb-4 rounded-2xl bg-bg-secondary border border-border px-5 py-4">
         <p className="text-text-secondary text-[12px] font-medium uppercase tracking-wide">
-          {selectedGroup === 'all' 
-            ? 'Total spent' 
+          {selectedGroup === 'all'
+            ? 'Total spent'
             : `${[...SYSTEM_GROUPS, ...customGroups].find(g => g.id === selectedGroup)?.label || 'Group'} Total`}
         </p>
         <p className="text-accent font-mono font-bold text-[36px] mt-1 leading-none">

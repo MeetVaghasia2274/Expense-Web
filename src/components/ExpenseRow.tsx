@@ -1,122 +1,79 @@
-import { useRef, useState } from 'react';
-import type { Expense } from '../types/expense';
-import { CATEGORY_META, PAYMENT_META, SYSTEM_GROUPS } from '../types/expense';
+import React from 'react';
 import { useStore } from '../lib/store';
+import { CATEGORY_META, PAYMENT_META, type Expense } from '../types/expense';
 
 interface ExpenseRowProps {
   expense: Expense;
 }
 
 export default function ExpenseRow({ expense }: ExpenseRowProps) {
-  const removeExpense = useStore((s) => s.removeExpense);
   const setExpenseToEdit = useStore((s) => s.setExpenseToEdit);
-  const customGroups = useStore((s) => s.customGroups);
   const openSheet = useStore((s) => s.openSheet);
+  const removeExpense = useStore((s) => s.removeExpense);
   const showToast = useStore((s) => s.showToast);
 
-  const { emoji, label, color } = CATEGORY_META[expense.category];
-  const { label: payLabel, icon: payIcon } = PAYMENT_META[expense.paymentMethod];
+  const meta = CATEGORY_META[expense.category];
+  const payMeta = PAYMENT_META[expense.paymentMethod];
 
-  // Find group metadata
-  const groupMeta = [...SYSTEM_GROUPS, ...customGroups].find(g => g.id === expense.group);
-
-  // ── Swipe to delete ────────────────────────────────
-  const startX = useRef<number | null>(null);
-  const hasSwiped = useRef(false);
-  const [offsetX, setOffsetX] = useState(0);
-  const THRESHOLD = 72;
-
-  const onTouchStart = (e: React.TouchEvent) => {
-    startX.current = e.touches[0].clientX;
-    hasSwiped.current = false;
-  };
-
-  const onTouchMove = (e: React.TouchEvent) => {
-    if (startX.current === null) return;
-    const dx = e.touches[0].clientX - startX.current;
-    if (Math.abs(dx) > 10) hasSwiped.current = true;
-    if (dx < 0) setOffsetX(Math.max(dx, -THRESHOLD - 20));
-  };
-
-  const onTouchEnd = () => {
-    if (offsetX < -THRESHOLD) {
-      // Delete
-      if (window.confirm('Are you sure you want to delete this expense?')) {
-        removeExpense(expense.id);
-        showToast('Expense deleted');
-      } else {
-        setOffsetX(0);
-      }
-    } else {
-      setOffsetX(0);
-    }
-    startX.current = null;
-  };
-
-  const handleClick = () => {
-    if (hasSwiped.current) return;
-    if (!window.confirm('Edit this expense?')) return;
+  const handleEdit = () => {
     setExpenseToEdit(expense);
     openSheet();
   };
 
-  // Format amount
-  const formatted = expense.amount.toLocaleString('en-IN', {
-    maximumFractionDigits: 2,
-  });
-
-  // Format time
-  const time = new Date(expense.createdAt).toLocaleTimeString('en-IN', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: true,
-  });
+  const handleDelete = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (confirm('Move to trash?')) {
+      await removeExpense(expense.id);
+      showToast('Moved to trash');
+    }
+  };
 
   return (
-    <div className="swipe-wrapper">
-      {/* Red delete background */}
-      <div className="delete-reveal">🗑️</div>
-
-      {/* Row */}
-      <div
-        className="expense-row"
-        style={{ transform: `translateX(${offsetX}px)`, transition: offsetX === 0 ? 'transform 0.25s ease' : 'none' }}
-        onTouchStart={onTouchStart}
-        onTouchMove={onTouchMove}
-        onTouchEnd={onTouchEnd}
-        onClick={handleClick}
+    <div 
+      className="group bg-bg-secondary border border-border rounded-2xl p-3 flex items-center gap-3 active:bg-bg-tertiary transition-all"
+      onClick={handleEdit}
+    >
+      <div 
+        className="w-11 h-11 rounded-full flex items-center justify-center text-[20px] flex-shrink-0"
+        style={{ background: meta.color }}
       >
-        {/* Emoji icon */}
-        <div className="expense-emoji-wrap" style={{ background: color }}>
-          {emoji}
-        </div>
-
-        {/* Middle text */}
-        <div className="flex flex-col flex-1 min-w-0">
-          <span className="text-text-primary font-medium text-[15px] truncate">{label}</span>
-          <span className="text-text-secondary text-[12px] flex items-center gap-1 mt-0.5">
-            <span>{payIcon} {payLabel}</span>
-            <span className="text-border">·</span>
-            <span>{time}</span>
-            {groupMeta && groupMeta.id !== 'personal' && (
-              <>
-                <span className="text-border">·</span>
-                <span>{groupMeta.emoji}</span>
-              </>
-            )}
-          </span>
-          {expense.note && (
-            <span className="text-text-secondary text-[12px] truncate italic mt-0.5">
-              {expense.note}
-            </span>
+        {meta.emoji}
+      </div>
+      
+      <div className="flex-1 overflow-hidden">
+        <p className="text-text-primary font-semibold text-[15px] truncate">{meta.label}</p>
+        <div className="flex items-center gap-1.5 mt-0.5">
+          <span className="text-[12px] opacity-80">{payMeta.icon}</span>
+          <span className="text-text-secondary text-[12px] font-medium">{payMeta.label}</span>
+          {expense.group && expense.group !== 'personal' && (
+            <>
+              <span className="w-1 h-1 rounded-full bg-border" />
+              <span className="text-text-secondary text-[12px] font-medium truncate">
+                {expense.group}
+              </span>
+            </>
           )}
         </div>
-
-        {/* Amount */}
-        <span className="text-accent font-mono font-semibold text-[17px] flex-shrink-0">
-          ₹{formatted}
-        </span>
       </div>
+
+      <div className="text-right flex flex-col items-end flex-shrink-0">
+        <p className="text-accent font-bold text-[16px]">
+          ₹{expense.amount.toLocaleString('en-IN')}
+        </p>
+        {expense.note && (
+          <p className="text-text-secondary text-[11px] truncate max-w-[80px] mt-0.5 italic">
+            {expense.note}
+          </p>
+        )}
+      </div>
+
+      <button 
+        onClick={handleDelete}
+        className="w-8 h-8 flex items-center justify-center rounded-full bg-red-500/10 text-red-500 text-sm opacity-0 group-hover:opacity-100 active:bg-red-500/20 transition-opacity ml-1"
+        aria-label="Delete expense"
+      >
+        ✕
+      </button>
     </div>
   );
 }

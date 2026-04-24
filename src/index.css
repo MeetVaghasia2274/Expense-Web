@@ -2,382 +2,156 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ─── CSS Custom Properties ───────────────────────────────────── */
 :root {
-  --bg-primary:    #ffffff;
-  --bg-secondary:  #f3f4f6;
-  --bg-tertiary:   #e5e7eb;
-  --accent:        #0d9488;
-  --accent-dim:    #0f766e;
-  --text-primary:  #111827;
-  --text-secondary:#6b7280;
-  --text-amount:   #0d9488;
-  --danger:        #ef4444;
-  --success:       #22c55e;
-  --border:        #d1d5db;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg-primary:    #0D1117;
-    --bg-secondary:  #161B22;
-    --bg-tertiary:   #21262D;
-    --accent:        #2DD4BF;
-    --accent-dim:    #1A9E8F;
-    --text-primary:  #F0F6FC;
-    --text-secondary:#8B949E;
-    --text-amount:   #2DD4BF;
-    --danger:        #F85149;
-    --success:       #3FB950;
-    --border:        #30363D;
-  }
-}
-
-/* ─── Base Reset ──────────────────────────────────────────────── */
-*, *::before, *::after {
-  box-sizing: border-box;
-  -webkit-tap-highlight-color: transparent;
-}
-
-html, body {
-  height: 100%;
-  height: 100dvh;
-  margin: 0;
-  padding: 0;
+  --bg-primary: #0D1117;
+  --bg-secondary: #161B22;
+  --bg-tertiary: #21262D;
+  --accent: #2DD4BF;
+  --accent-dim: #1A9E8F;
+  --text-primary: #F0F6FC;
+  --text-secondary: #8B949E;
+  --text-amount: #2DD4BF;
+  --danger: #F85149;
+  --success: #3FB950;
+  --border: #30363D;
 }
 
 body {
+  @apply bg-[#000] text-text-primary antialiased;
   font-family: 'Inter', system-ui, sans-serif;
-  background-color: var(--bg-primary);
-  color: var(--text-primary);
-  font-size: 15px;
-  line-height: 1.5;
-  -webkit-font-smoothing: antialiased;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
   overflow-x: hidden;
-  /* outer gutter on desktop */
-  display: flex;
-  justify-content: center;
 }
 
 #root {
-  width: 100%;
+  @apply mx-auto min-h-screen bg-bg-primary;
   max-width: 430px;
-  position: relative;
-  background-color: var(--bg-primary);
-  min-height: 100dvh;
 }
 
-/* ─── Scrollbar ───────────────────────────────────────────────── */
-::-webkit-scrollbar { width: 4px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
-
-/* ─── Safe area helpers ───────────────────────────────────────── */
-.safe-bottom {
-  padding-bottom: env(safe-area-inset-bottom, 0px);
-}
-.safe-top {
-  padding-top: env(safe-area-inset-top, 0px);
-}
-
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-/* ─── Amount display ──────────────────────────────────────────── */
 .amount-display {
-  font-family: 'JetBrains Mono', monospace;
+  @apply text-accent font-mono font-bold text-[56px] tracking-tight;
   font-variant-numeric: tabular-nums;
-  font-size: 56px;
-  font-weight: 700;
-  color: var(--text-amount);
-  line-height: 1;
-  letter-spacing: -1px;
 }
 
-/* ─── Bottom Sheet ────────────────────────────────────────────── */
-.sheet-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.65);
-  opacity: 0;
-  transition: opacity 0.35s ease;
-  z-index: 99;
-  pointer-events: none;
+.numpad-btn {
+  @apply h-[64px] flex items-center justify-center text-[24px] font-medium text-text-primary bg-bg-tertiary rounded-2xl active:bg-border transition-colors;
 }
+
+.cat-btn {
+  @apply flex flex-col items-center gap-1.5 p-2 rounded-2xl transition-all border border-transparent;
+}
+
+.cat-btn.selected {
+  @apply border-accent;
+  background-color: rgba(45, 212, 191, 0.05);
+}
+
+.cat-emoji {
+  @apply w-12 h-12 flex items-center justify-center text-[22px] rounded-full bg-bg-tertiary transition-colors;
+}
+
+.cat-btn.selected .cat-emoji {
+  background-color: rgba(45, 212, 191, 0.2);
+}
+
+.cat-label {
+  @apply text-[11px] font-medium text-text-secondary;
+}
+
+.cat-btn.selected .cat-label {
+  @apply text-accent;
+}
+
+.payment-chip {
+  @apply flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-bg-tertiary text-text-secondary text-[14px] font-medium border border-transparent transition-all;
+}
+
+.payment-chip.selected {
+  @apply bg-accent text-bg-primary border-accent;
+}
+
+.group-chip {
+  @apply flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-bg-tertiary text-text-secondary text-[13px] font-medium border border-transparent transition-all whitespace-nowrap;
+}
+
+.group-chip.selected {
+  background-color: rgba(45, 212, 191, 0.1);
+  color: var(--accent);
+  border-color: rgba(45, 212, 191, 0.3);
+}
+
+.save-btn {
+  @apply w-full py-4 rounded-2xl bg-accent text-bg-primary font-bold text-[17px] active:scale-[0.98] transition-all disabled:opacity-50 disabled:grayscale disabled:pointer-events-none;
+}
+
+.fab {
+  @apply fixed bottom-[90px] left-1/2 -translate-x-1/2 w-14 h-14 rounded-full bg-accent text-bg-primary text-[32px] font-light shadow-lg flex items-center justify-center active:scale-95 transition-all z-40;
+}
+
+.bottom-nav {
+  @apply fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] h-[72px] border-t border-border flex items-center px-6 z-40;
+  background-color: rgba(22, 27, 34, 0.8);
+  backdrop-filter: blur(20px);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.nav-item {
+  @apply flex-1 flex flex-col items-center gap-1 text-text-secondary transition-colors;
+}
+
+.nav-item.active {
+  @apply text-accent;
+}
+
+.nav-icon {
+  @apply text-[20px] transition-transform;
+}
+
+.nav-item.active .nav-icon {
+  @apply scale-110;
+}
+
+.nav-item span:not(.nav-icon) {
+  @apply text-[10px] font-bold uppercase tracking-wider;
+}
+
+.sheet-backdrop {
+  @apply fixed inset-0 bg-black/60 opacity-0 pointer-events-none transition-opacity duration-300 z-[100];
+}
+
 .sheet-backdrop.open {
-  opacity: 1;
-  pointer-events: all;
+  @apply opacity-100 pointer-events-auto;
 }
 
 .sheet {
-  position: fixed;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%) translateY(100%);
-  width: 100%;
-  max-width: 430px;
-  max-height: 90svh;
+  @apply fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-bg-secondary rounded-t-[32px] translate-y-full z-[101] overflow-hidden;
+  transition: transform 0.5s cubic-bezier(0.32, 0.72, 0, 1);
+  max-height: 92vh;
   overflow-y: auto;
-  background: var(--bg-secondary);
-  border-radius: 20px 20px 0 0;
-  transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
-  z-index: 100;
-  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
+
 .sheet.open {
-  transform: translateX(-50%) translateY(0);
+  @apply translate-y-0;
 }
 
-/* ─── Number Pad ──────────────────────────────────────────────── */
-.numpad-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 60px;
-  border-radius: 12px;
-  background: var(--bg-tertiary);
-  color: var(--text-primary);
-  font-size: 22px;
-  font-weight: 500;
-  cursor: pointer;
-  border: none;
-  transition: background 0.12s ease, transform 0.08s ease;
-  user-select: none;
-}
-.numpad-btn:active {
-  background: var(--border);
-  transform: scale(0.94);
-}
-
-/* ─── Category Grid ───────────────────────────────────────────── */
-.cat-btn {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  padding: 10px 4px;
-  border-radius: 12px;
-  background: var(--bg-tertiary);
-  border: 2px solid transparent;
-  cursor: pointer;
-  transition: border-color 0.15s ease, background 0.15s ease;
-  min-height: 72px;
-}
-.cat-btn.selected {
-  border-color: var(--accent);
-  background: rgba(45, 212, 191, 0.08);
-}
-.cat-emoji {
-  font-size: 26px;
-  width: 44px;
-  height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 10px;
-  background: var(--bg-primary);
-  transition: background 0.15s ease;
-}
-.cat-btn.selected .cat-emoji {
-  background: rgba(45, 212, 191, 0.15);
-}
-.cat-label {
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--text-secondary);
-  text-align: center;
-  line-height: 1.2;
-}
-.cat-btn.selected .cat-label {
-  color: var(--accent);
-}
-
-/* ─── Payment Chips ───────────────────────────────────────────── */
-.payment-chip {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 10px 12px;
-  border-radius: 50px;
-  border: 1.5px solid var(--border);
-  background: transparent;
-  color: var(--text-secondary);
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  min-height: 44px;
-}
-.payment-chip.selected {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #0D1117;
-  font-weight: 600;
-}
-
-/* ─── FAB ─────────────────────────────────────────────────────── */
-.fab {
-  position: fixed;
-  bottom: calc(72px + env(safe-area-inset-bottom, 0px) + 16px);
-  left: 50%;
-  transform: translateX(-50%);
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  background: var(--accent);
-  color: #0D1117;
-  font-size: 30px;
-  font-weight: 300;
-  border: none;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4px 24px rgba(45, 212, 191, 0.4);
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
-  z-index: 40;
-}
-.fab:active {
-  transform: translateX(-50%) scale(0.92);
-  box-shadow: 0 2px 12px rgba(45, 212, 191, 0.25);
-}
-
-/* ─── Save Button ─────────────────────────────────────────────── */
-.save-btn {
-  width: 100%;
-  padding: 16px;
-  border-radius: 14px;
-  background: var(--accent);
-  color: #0D1117;
-  font-size: 16px;
-  font-weight: 700;
-  border: none;
-  cursor: pointer;
-  transition: background 0.15s ease, transform 0.1s ease;
-  min-height: 52px;
-}
-.save-btn:active {
-  background: var(--accent-dim);
-  transform: scale(0.98);
-}
-.save-btn:disabled {
-  background: var(--bg-tertiary);
-  color: var(--text-secondary);
-  cursor: not-allowed;
-}
-
-/* ─── Bottom Nav ──────────────────────────────────────────────── */
-.bottom-nav {
-  position: fixed;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 100%;
-  max-width: 430px;
-  height: calc(64px + env(safe-area-inset-bottom, 0px));
-  padding-bottom: env(safe-area-inset-bottom, 0px);
-  background: var(--bg-secondary);
-  border-top: 1px solid var(--border);
-  display: flex;
-  z-index: 30;
-}
-.nav-item {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  cursor: pointer;
-  color: var(--text-secondary);
-  font-size: 11px;
-  font-weight: 500;
-  text-decoration: none;
-  transition: color 0.15s ease;
-  min-height: 48px;
-}
-.nav-item.active {
-  color: var(--accent);
-}
-.nav-icon {
-  font-size: 22px;
-  line-height: 1;
-}
-
-/* ─── Expense Row ─────────────────────────────────────────────── */
-.expense-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px 16px;
-  background: var(--bg-secondary);
-  border-radius: 14px;
-  position: relative;
-  overflow: hidden;
-  transition: transform 0.2s ease;
-}
-.expense-row:active {
-  background: var(--bg-tertiary);
-}
-.expense-emoji-wrap {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 22px;
-  flex-shrink: 0;
-}
-
-/* ─── Toast ───────────────────────────────────────────────────── */
-@keyframes toastIn {
-  from { opacity: 0; transform: translateY(12px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-@keyframes toastOut {
-  from { opacity: 1; }
-  to   { opacity: 0; }
-}
 .toast {
-  position: fixed;
-  bottom: calc(90px + env(safe-area-inset-bottom, 0px));
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--success);
-  color: #fff;
-  font-size: 14px;
-  font-weight: 600;
-  padding: 10px 20px;
-  border-radius: 50px;
-  z-index: 200;
-  animation: toastIn 0.25s ease forwards;
-  white-space: nowrap;
+  @apply fixed bottom-[100px] left-1/2 -translate-x-1/2 px-4 py-2.5 rounded-full bg-bg-tertiary text-text-primary text-[14px] font-medium border border-border shadow-2xl z-[200];
+  animation: fade-in-up 0.3s ease-out;
 }
 
-/* ─── Swipe-to-delete ─────────────────────────────────────────── */
-.swipe-wrapper {
-  position: relative;
-  overflow: hidden;
-  border-radius: 14px;
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translate(-50%, 20px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
 }
-.delete-reveal {
-  position: absolute;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  width: 80px;
-  background: var(--danger);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 14px;
-  font-size: 20px;
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide scrollbar for IE, Edge and Firefox */
+.no-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
 }

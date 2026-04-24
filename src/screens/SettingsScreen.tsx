@@ -159,6 +159,7 @@ export default function SettingsScreen() {
         amount: Math.floor(Math.random() * 2000) + 50,
         category: categories[Math.floor(Math.random() * categories.length)],
         paymentMethod: payments[Math.floor(Math.random() * payments.length)],
+        group: 'personal',
         createdAt: d.toISOString(),
       };
       await insertExpense(expense);
