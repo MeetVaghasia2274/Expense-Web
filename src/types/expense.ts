@@ -8,10 +8,26 @@ export type Category =
 
 export type PaymentMethod = 'cash' | 'upi' | 'card';
 
+export type Group = string;
+
+export interface CustomGroup {
+  id: string;
+  label: string;
+  emoji: string;
+  isSystem?: boolean;
+}
+
+export const SYSTEM_GROUPS: CustomGroup[] = [
+  { id: 'personal', label: 'Personal', emoji: '🏠', isSystem: true },
+  { id: 'office',   label: 'Office',   emoji: '💼', isSystem: true },
+  { id: 'college',  label: 'College',  emoji: '🎓', isSystem: true },
+];
+
 export interface Expense {
   id: string;
   amount: number;
   category: Category;
+  group: Group;
   paymentMethod: PaymentMethod;
   note?: string;
   createdAt: string; // ISO 8601

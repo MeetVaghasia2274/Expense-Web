@@ -1,18 +1,24 @@
 import { openDB, type IDBPDatabase } from 'idb';
-import type { Expense } from '../types/expense';
+import type { Expense, CustomGroup } from '../types/expense';
 
 const DB_NAME = 'expense-mobile';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const STORE = 'expenses';
+const GROUP_STORE = 'groups';
 
 let dbPromise: Promise<IDBPDatabase> | null = null;
 
 function getDB(): Promise<IDBPDatabase> {
   if (!dbPromise) {
     dbPromise = openDB(DB_NAME, DB_VERSION, {
-      upgrade(db) {
-        const store = db.createObjectStore(STORE, { keyPath: 'id' });
-        store.createIndex('createdAt', 'createdAt');
+      upgrade(db, oldVersion) {
+        if (oldVersion < 1) {
+          const store = db.createObjectStore(STORE, { keyPath: 'id' });
+          store.createIndex('createdAt', 'createdAt');
+        }
+        if (oldVersion < 2) {
+          db.createObjectStore(GROUP_STORE, { keyPath: 'id' });
+        }
       },
     });
   }
@@ -52,4 +58,19 @@ export async function getExpensesByMonth(
 export async function deleteExpense(id: string): Promise<void> {
   const db = await getDB();
   await db.delete(STORE, id);
+}
+
+export async function getAllGroups(): Promise<CustomGroup[]> {
+  const db = await getDB();
+  return db.getAll(GROUP_STORE);
+}
+
+export async function insertGroup(group: CustomGroup): Promise<void> {
+  const db = await getDB();
+  await db.add(GROUP_STORE, group);
+}
+
+export async function deleteGroup(id: string): Promise<void> {
+  const db = await getDB();
+  await db.delete(GROUP_STORE, id);
 }
