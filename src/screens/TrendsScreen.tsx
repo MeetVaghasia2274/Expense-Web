@@ -42,15 +42,18 @@ const BarTooltip = ({ active, payload }: { active?: boolean; payload?: { value: 
 export default function TrendsScreen() {
   const expenses = useStore((s) => s.expenses);
   const customGroups = useStore((s) => s.customGroups);
+  const budgets      = useStore((s) => s.budgets);
   const loadExpenses = useStore((s) => s.loadExpenses);
-  const loadGroups = useStore((s) => s.loadGroups);
-  const removeGroup = useStore((s) => s.removeGroup);
+  const loadGroups   = useStore((s) => s.loadGroups);
+  const loadBudgets  = useStore((s) => s.loadBudgets);
+  const removeGroup  = useStore((s) => s.removeGroup);
   const toastMessage = useStore((s) => s.toastMessage);
 
   useEffect(() => {
     loadExpenses();
     loadGroups();
-  }, [loadExpenses, loadGroups]);
+    loadBudgets();
+  }, [loadExpenses, loadGroups, loadBudgets]);
 
   // ── Month navigation ────────────────────────────────
   const now = new Date();
@@ -252,6 +255,63 @@ export default function TrendsScreen() {
               )}
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Budget Progress Section */}
+      {isCurrentMonth && budgets.length > 0 && (
+        <div className="mx-4 mb-4 rounded-2xl bg-bg-secondary border border-border px-4 py-4">
+          <p className="text-text-secondary text-[12px] font-semibold uppercase tracking-wide mb-3 pl-1">
+            Budget Progress
+          </p>
+          <div className="flex flex-col gap-4">
+            {budgets.map((b) => {
+              // Calculate spent for this budget item
+              let spent = 0;
+              let label = '';
+              let emoji = '';
+              
+              if (b.type === 'category') {
+                spent = monthExpenses
+                  .filter(e => e.category === b.id)
+                  .reduce((sum, e) => sum + e.amount, 0);
+                label = CATEGORY_META[b.id as Category]?.label || b.id;
+                emoji = CATEGORY_META[b.id as Category]?.emoji || '🎯';
+              } else {
+                spent = monthExpenses
+                  .filter(e => e.group === b.id)
+                  .reduce((sum, e) => sum + e.amount, 0);
+                const g = [...SYSTEM_GROUPS, ...customGroups].find(g => g.id === b.id);
+                label = g?.label || b.id;
+                emoji = g?.emoji || '🎯';
+              }
+
+              const percent = Math.min((spent / b.amount) * 100, 100);
+              const isOver = spent > b.amount;
+              const colorClass = percent > 90 ? 'bg-danger' : percent > 70 ? 'bg-orange-500' : 'bg-success';
+
+              return (
+                <div key={`${b.type}-${b.id}`} className="flex flex-col gap-1.5">
+                  <div className="flex justify-between items-end px-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[16px]">{emoji}</span>
+                      <span className="text-text-primary text-[14px] font-medium">{label}</span>
+                    </div>
+                    <span className="text-[12px] font-semibold">
+                      <span className={isOver ? 'text-danger' : 'text-text-primary'}>₹{spent.toLocaleString()}</span>
+                      <span className="text-text-secondary"> / ₹{b.amount.toLocaleString()}</span>
+                    </span>
+                  </div>
+                  <div className="h-2 w-full bg-bg-tertiary rounded-full overflow-hidden">
+                    <div 
+                      className={`h-full transition-all duration-500 ${colorClass}`}
+                      style={{ width: `${percent}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 

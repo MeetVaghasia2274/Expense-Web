@@ -4,7 +4,7 @@ import { insertExpense, getAllExpenses } from '../lib/db';
 import BottomNav from '../components/BottomNav';
 import LogSheet from '../components/LogSheet';
 import type { Expense, Category, PaymentMethod } from '../types/expense';
-import { CATEGORY_META, PAYMENT_META } from '../types/expense';
+import { CATEGORY_META, PAYMENT_META, SYSTEM_GROUPS } from '../types/expense';
 import { jsPDF } from 'jspdf';
 
 export default function SettingsScreen() {
@@ -14,9 +14,17 @@ export default function SettingsScreen() {
   const deletedExpenses = useStore((s) => s.deletedExpenses);
   const permanentlyDeleteExpense = useStore((s) => s.permanentlyDeleteExpense);
   const restoreExpense = useStore((s) => s.restoreExpense);
-  
+
+  const budgets = useStore((s) => s.budgets);
+  const loadBudgets = useStore((s) => s.loadBudgets);
+  const updateBudget = useStore((s) => s.updateBudget);
+  const removeBudget = useStore((s) => s.removeBudget);
+  const customGroups = useStore((s) => s.customGroups);
+  const loadGroups = useStore((s) => s.loadGroups);
+
   const [loading, setLoading] = useState(false);
   const [showDeleted, setShowDeleted] = useState(false);
+  const [showBudgets, setShowBudgets] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleExport = async () => {
@@ -230,6 +238,28 @@ export default function SettingsScreen() {
             </button>
           </div>
         </section>
+        {/* Budgeting Section */}
+        <section>
+          <h2 className="text-text-secondary text-[12px] font-semibold uppercase tracking-wide mb-3 pl-1">
+            Budgeting
+          </h2>
+          <div className="bg-bg-secondary border border-border rounded-2xl overflow-hidden flex flex-col">
+            <button 
+              onClick={() => {
+                loadBudgets();
+                loadGroups();
+                setShowBudgets(true);
+              }}
+              className="flex items-center justify-between px-4 py-4 text-left"
+            >
+              <div>
+                <p className="text-text-primary font-medium text-[15px]">Monthly Budgets</p>
+                <p className="text-text-secondary text-[13px] mt-0.5">Set spending limits for categories & groups</p>
+              </div>
+              <span className="text-[20px]">🎯</span>
+            </button>
+          </div>
+        </section>
 
         {/* Recently Deleted Section */}
         <section>
@@ -263,7 +293,7 @@ export default function SettingsScreen() {
 
       {/* Full-screen Recently Deleted Overlay */}
       {showDeleted && (
-        <div className="fixed inset-0 bg-bg-primary z-50 flex flex-col pb-[80px] overflow-y-auto">
+        <div className="fixed inset-0 bg-bg-primary z-50 flex flex-col pb-[80px] overflow-y-auto max-w-[430px] left-1/2 -translate-x-1/2 border-x border-bg-tertiary shadow-2xl">
           <div 
             className="flex items-center px-4 pb-4 border-b border-border bg-bg-primary sticky top-0"
             style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 24px)' }}
@@ -323,6 +353,95 @@ export default function SettingsScreen() {
                 ))}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Full-screen Budgets Overlay */}
+      {showBudgets && (
+        <div className="fixed inset-0 bg-bg-primary z-50 flex flex-col pb-[80px] overflow-y-auto max-w-[430px] left-1/2 -translate-x-1/2 border-x border-bg-tertiary shadow-2xl">
+          <div 
+            className="flex items-center px-4 pb-4 border-b border-border bg-bg-primary sticky top-0"
+            style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 24px)' }}
+          >
+            <button 
+              onClick={() => setShowBudgets(false)}
+              className="w-10 h-10 flex items-center justify-center rounded-full bg-bg-tertiary text-text-primary text-lg mr-2"
+            >
+              ‹
+            </button>
+            <h1 className="text-text-primary font-semibold text-[20px]">Monthly Budgets</h1>
+          </div>
+
+          <div className="px-4 py-6">
+            <div className="flex flex-col gap-8">
+              
+              {/* Category Budgets */}
+              <section>
+                <h3 className="text-text-secondary text-[12px] font-semibold uppercase tracking-wider mb-4 pl-1">Categories</h3>
+                <div className="flex flex-col gap-3">
+                  {(Object.keys(CATEGORY_META) as Category[]).map(catId => {
+                    const meta = CATEGORY_META[catId];
+                    const budget = budgets.find(b => b.id === catId && b.type === 'category');
+                    return (
+                      <div key={catId} className="bg-bg-secondary border border-border rounded-2xl p-4 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <span className="text-[20px]">{meta.emoji}</span>
+                          <span className="text-text-primary font-medium">{meta.label}</span>
+                        </div>
+                        <input 
+                          type="number"
+                          placeholder="Set limit"
+                          value={budget?.amount || ''}
+                          onChange={(e) => {
+                            const val = parseFloat(e.target.value);
+                            if (isNaN(val) || val <= 0) {
+                              removeBudget(catId);
+                            } else {
+                              updateBudget({ id: catId, type: 'category', amount: val });
+                            }
+                          }}
+                          className="w-28 bg-bg-tertiary border border-border rounded-xl px-2 py-2 text-right text-text-primary font-semibold outline-none focus:border-accent"
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+
+              {/* Group Budgets */}
+              <section>
+                <h3 className="text-text-secondary text-[12px] font-semibold uppercase tracking-wider mb-4 pl-1">Groups</h3>
+                <div className="flex flex-col gap-3">
+                  {[...customGroups, ...SYSTEM_GROUPS].map(group => {
+                    const budget = budgets.find(b => b.id === group.id && b.type === 'group');
+                    return (
+                      <div key={group.id} className="bg-bg-secondary border border-border rounded-2xl p-4 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <span className="text-[20px]">{group.emoji}</span>
+                          <span className="text-text-primary font-medium">{group.label}</span>
+                        </div>
+                        <input 
+                          type="number"
+                          placeholder="Set limit"
+                          value={budget?.amount || ''}
+                          onChange={(e) => {
+                            const val = parseFloat(e.target.value);
+                            if (isNaN(val) || val <= 0) {
+                              removeBudget(group.id);
+                            } else {
+                              updateBudget({ id: group.id, type: 'group', amount: val });
+                            }
+                          }}
+                          className="w-28 bg-bg-tertiary border border-border rounded-xl px-2 py-2 text-right text-text-primary font-semibold outline-none focus:border-accent"
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+
+            </div>
           </div>
         </div>
       )}
