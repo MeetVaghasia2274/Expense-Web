@@ -38,10 +38,14 @@ function formatSectionDate(dateStr: string): string {
 export default function HomeScreen() {
   const expenses      = useStore((s) => s.expenses);
   const loadExpenses  = useStore((s) => s.loadExpenses);
+  const loadGroups    = useStore((s) => s.loadGroups);
   const openSheet     = useStore((s) => s.openSheet);
   const toastMessage  = useStore((s) => s.toastMessage);
 
-  useEffect(() => { loadExpenses(); }, [loadExpenses]);
+  useEffect(() => { 
+    loadExpenses();
+    loadGroups();
+  }, [loadExpenses, loadGroups]);
 
   // ── Derived data ────────────────────────────────────
   const now = new Date();

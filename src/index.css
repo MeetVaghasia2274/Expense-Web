@@ -80,6 +80,14 @@ body {
   padding-top: env(safe-area-inset-top, 0px);
 }
 
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
 /* ─── Amount display ──────────────────────────────────────────── */
 .amount-display {
   font-family: 'JetBrains Mono', monospace;

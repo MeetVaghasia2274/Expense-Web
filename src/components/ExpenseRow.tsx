@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import type { Expense } from '../types/expense';
-import { CATEGORY_META, PAYMENT_META } from '../types/expense';
+import { CATEGORY_META, PAYMENT_META, SYSTEM_GROUPS } from '../types/expense';
 import { useStore } from '../lib/store';
 
 interface ExpenseRowProps {
@@ -10,11 +10,15 @@ interface ExpenseRowProps {
 export default function ExpenseRow({ expense }: ExpenseRowProps) {
   const removeExpense = useStore((s) => s.removeExpense);
   const setExpenseToEdit = useStore((s) => s.setExpenseToEdit);
+  const customGroups = useStore((s) => s.customGroups);
   const openSheet = useStore((s) => s.openSheet);
   const showToast = useStore((s) => s.showToast);
 
   const { emoji, label, color } = CATEGORY_META[expense.category];
   const { label: payLabel, icon: payIcon } = PAYMENT_META[expense.paymentMethod];
+
+  // Find group metadata
+  const groupMeta = [...SYSTEM_GROUPS, ...customGroups].find(g => g.id === expense.group);
 
   // ── Swipe to delete ────────────────────────────────
   const startX = useRef<number | null>(null);
@@ -94,6 +98,12 @@ export default function ExpenseRow({ expense }: ExpenseRowProps) {
             <span>{payIcon} {payLabel}</span>
             <span className="text-border">·</span>
             <span>{time}</span>
+            {groupMeta && groupMeta.id !== 'personal' && (
+              <>
+                <span className="text-border">·</span>
+                <span>{groupMeta.emoji}</span>
+              </>
+            )}
           </span>
           {expense.note && (
             <span className="text-text-secondary text-[12px] truncate italic mt-0.5">

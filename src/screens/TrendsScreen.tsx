@@ -5,11 +5,12 @@ import {
 } from 'recharts';
 import { useStore } from '../lib/store';
 import { getExpensesByMonth } from '../lib/db';
-import type { Category, Expense } from '../types/expense';
-import { CATEGORY_META } from '../types/expense';
+import type { Category, CustomGroup, Expense, Group } from '../types/expense';
+import { CATEGORY_META, GROUP_META, SYSTEM_GROUPS } from '../types/expense';
 import BottomNav from '../components/BottomNav';
 import ExpenseRow from '../components/ExpenseRow';
 import LogSheet from '../components/LogSheet';
+import GroupChips from '../components/GroupChips';
 
 const CATEGORY_COLORS: Record<Category, string> = {
   food:      '#FB923C',
@@ -41,15 +42,22 @@ const BarTooltip = ({ active, payload }: { active?: boolean; payload?: { value: 
 
 export default function TrendsScreen() {
   const expenses     = useStore((s) => s.expenses);
+  const customGroups = useStore((s) => s.customGroups);
   const loadExpenses = useStore((s) => s.loadExpenses);
+  const loadGroups   = useStore((s) => s.loadGroups);
+  const removeGroup  = useStore((s) => s.removeGroup);
   const toastMessage = useStore((s) => s.toastMessage);
 
-  useEffect(() => { loadExpenses(); }, [loadExpenses]);
+  useEffect(() => { 
+    loadExpenses();
+    loadGroups();
+  }, [loadExpenses, loadGroups]);
 
   // ── Month navigation ────────────────────────────────
   const now = new Date();
   const [viewYear, setViewYear]   = useState(now.getFullYear());
   const [viewMonth, setViewMonth] = useState(now.getMonth());
+  const [selectedGroup, setSelectedGroup] = useState<Group | 'all'>('all');
   const [monthExpenses, setMonthExpenses] = useState<Expense[]>([]);
 
   useEffect(() => {
@@ -97,7 +105,11 @@ export default function TrendsScreen() {
   // ── Category donut ──────────────────────────────────
   const pieData = useMemo(() => {
     const map: Partial<Record<Category, number>> = {};
-    for (const e of monthExpenses) {
+    const filtered = selectedGroup === 'all' 
+      ? monthExpenses 
+      : monthExpenses.filter(e => e.group === selectedGroup);
+
+    for (const e of filtered) {
       map[e.category] = (map[e.category] ?? 0) + e.amount;
     }
     return Object.entries(map)
@@ -107,19 +119,49 @@ export default function TrendsScreen() {
         color: CATEGORY_COLORS[cat as Category],
       }))
       .sort((a, b) => b.value - a.value);
-  }, [monthExpenses]);
+  }, [monthExpenses, selectedGroup]);
+
+  // ── Group breakdown ─────────────────────────────────
+  const groupData = useMemo(() => {
+    const map: Partial<Record<string, number>> = {};
+    const allGroups = [...SYSTEM_GROUPS, ...customGroups];
+    
+    for (const e of monthExpenses) {
+      const g = e.group || 'personal';
+      map[g] = (map[g] ?? 0) + e.amount;
+    }
+    
+    return allGroups
+      .map((g) => ({
+        id: g.id,
+        name: g.label,
+        emoji: g.emoji,
+        value: map[g.id] ?? 0,
+        isSystem: g.isSystem,
+      }))
+      .filter(g => g.value > 0 || !g.isSystem) // Show system groups or custom groups with value
+      .sort((a, b) => b.value - a.value);
+  }, [monthExpenses, customGroups]);
+
+  const filteredExpenses = useMemo(() => {
+    return selectedGroup === 'all'
+      ? monthExpenses
+      : monthExpenses.filter(e => e.group === selectedGroup);
+  }, [monthExpenses, selectedGroup]);
+
+  const filteredTotal = filteredExpenses.reduce((s, e) => s + e.amount, 0);
 
   // ── Group by date ────────────────────────────────────
   const grouped = useMemo(() => {
     const map = new Map<string, Expense[]>();
-    for (const e of monthExpenses) {
+    for (const e of filteredExpenses) {
       const d = new Date(e.createdAt);
       const key = d.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
       if (!map.has(key)) map.set(key, []);
       map.get(key)!.push(e);
     }
     return Array.from(map.entries());
-  }, [monthExpenses]);
+  }, [filteredExpenses]);
 
   return (
     <div className="flex flex-col min-h-full pb-[80px] overflow-x-hidden">
@@ -149,16 +191,71 @@ export default function TrendsScreen() {
         </button>
       </div>
 
+      {/* Group Selector */}
+      <div className="mb-4">
+        <div className="flex gap-2 px-4 overflow-x-auto no-scrollbar">
+          <button
+            className={`payment-chip ${selectedGroup === 'all' ? 'selected' : ''}`}
+            onClick={() => setSelectedGroup('all')}
+          >
+            <span>🌎</span>
+            <span>All</span>
+          </button>
+          {[...SYSTEM_GROUPS, ...customGroups].map((g) => (
+            <button
+              key={g.id}
+              className={`payment-chip ${selectedGroup === g.id ? 'selected' : ''}`}
+              onClick={() => setSelectedGroup(g.id)}
+            >
+              <span>{g.emoji}</span>
+              <span>{g.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Total card */}
       <div className="mx-4 mb-4 rounded-2xl bg-bg-secondary border border-border px-5 py-4">
-        <p className="text-text-secondary text-[12px] font-medium uppercase tracking-wide">Total spent</p>
+        <p className="text-text-secondary text-[12px] font-medium uppercase tracking-wide">
+          {selectedGroup === 'all' 
+            ? 'Total spent' 
+            : `${[...SYSTEM_GROUPS, ...customGroups].find(g => g.id === selectedGroup)?.label || 'Group'} Total`}
+        </p>
         <p className="text-accent font-mono font-bold text-[36px] mt-1 leading-none">
-          ₹{monthTotal.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+          ₹{filteredTotal.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
         </p>
         <p className="text-text-secondary text-[12px] mt-1">
-          {monthExpenses.length} transaction{monthExpenses.length !== 1 ? 's' : ''}
+          {filteredExpenses.length} transaction{filteredExpenses.length !== 1 ? 's' : ''}
         </p>
       </div>
+
+      {/* Group breakdown summary */}
+      {selectedGroup === 'all' && groupData.length > 0 && (
+        <div className="mx-4 mb-4 flex gap-2 overflow-x-auto no-scrollbar">
+          {groupData.map((g) => (
+            <div key={g.id} className="flex-shrink-0 bg-bg-secondary border border-border rounded-xl px-3 py-2 relative group">
+              <div className="flex items-center gap-1.5 text-[12px] text-text-secondary">
+                <span>{g.emoji}</span>
+                <span className="font-medium">{g.name}</span>
+              </div>
+              <div className="text-[14px] font-semibold text-text-primary mt-0.5">
+                ₹{g.value.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+              </div>
+              {!g.isSystem && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (window.confirm(`Delete group "${g.name}"?`)) removeGroup(g.id);
+                  }}
+                  className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-danger text-white rounded-full flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Bar chart — last 6 months */}
       <div className="mx-4 mb-4 rounded-2xl bg-bg-secondary border border-border px-2 py-4">
