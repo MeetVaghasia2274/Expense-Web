@@ -1,11 +1,14 @@
 import { create } from 'zustand';
-import type { Category, Expense, PaymentMethod } from '../types/expense';
 import {
   getAllExpenses,
   insertExpense,
   updateExpense as dbUpdateExpense,
   deleteExpense as dbDeleteExpense,
+  getAllGroups,
+  insertGroup,
+  deleteGroup as dbDeleteGroup,
 } from './db';
+import type { Category, CustomGroup, Expense, Group, PaymentMethod } from '../types/expense';
 
 interface AppState {
   // ── Expense data ──────────────────────────────────
@@ -18,6 +21,12 @@ interface AppState {
   permanentlyDeleteExpense: (id: string) => Promise<void>;
   restoreExpense: (id: string) => Promise<void>;
 
+  // ── Group data ────────────────────────────────────
+  customGroups: CustomGroup[];
+  loadGroups: () => Promise<void>;
+  addGroup: (group: CustomGroup) => Promise<void>;
+  removeGroup: (id: string) => Promise<void>;
+
   // ── Log sheet state ───────────────────────────────
   sheetOpen: boolean;
   expenseToEdit: Expense | null;
@@ -28,8 +37,10 @@ interface AppState {
   // ── Last-used defaults ────────────────────────────
   lastCategory: Category;
   lastPayment: PaymentMethod;
+  lastGroup: Group;
   setLastCategory: (c: Category) => void;
   setLastPayment: (p: PaymentMethod) => void;
+  setLastGroup: (g: Group) => void;
 
   // ── Toast ─────────────────────────────────────────
   toastMessage: string | null;
@@ -40,6 +51,7 @@ export const useStore = create<AppState>((set, get) => ({
   // ── Expense data ──────────────────────────────────
   expenses: [],
   deletedExpenses: [],
+  customGroups: [],
 
   loadExpenses: async () => {
     const all = await getAllExpenses();
@@ -112,6 +124,26 @@ export const useStore = create<AppState>((set, get) => ({
     }));
   },
 
+  // ── Group data ────────────────────────────────────
+  loadGroups: async () => {
+    const groups = await getAllGroups();
+    set({ customGroups: groups });
+  },
+
+  addGroup: async (group: CustomGroup) => {
+    await insertGroup(group);
+    set((state) => ({ customGroups: [...state.customGroups, group] }));
+  },
+
+  removeGroup: async (id: string) => {
+    await dbDeleteGroup(id);
+    set((state) => ({
+      customGroups: state.customGroups.filter((g) => g.id !== id),
+      // If lastGroup was the one deleted, reset to personal
+      lastGroup: get().lastGroup === id ? 'personal' : get().lastGroup,
+    }));
+  },
+
   // ── Log sheet state ───────────────────────────────
   sheetOpen: false,
   expenseToEdit: null,
@@ -122,8 +154,10 @@ export const useStore = create<AppState>((set, get) => ({
   // ── Last-used defaults ────────────────────────────
   lastCategory: 'food',
   lastPayment:  'upi',
+  lastGroup:    'personal',
   setLastCategory: (c) => set({ lastCategory: c }),
   setLastPayment:  (p) => set({ lastPayment: p }),
+  setLastGroup:    (g) => set({ lastGroup: g }),
 
   // ── Toast ─────────────────────────────────────────
   toastMessage: null,
