@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useStore } from '../lib/store';
-import type { Category, PaymentMethod } from '../types/expense';
+import type { Category, Group, PaymentMethod } from '../types/expense';
 import NumberPad from './NumberPad';
 import CategoryGrid from './CategoryGrid';
 import PaymentChips from './PaymentChips';
+import GroupChips from './GroupChips';
 
 function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
@@ -18,12 +19,15 @@ export default function LogSheet() {
   const showToast    = useStore((s) => s.showToast);
   const lastCategory = useStore((s) => s.lastCategory);
   const lastPayment  = useStore((s) => s.lastPayment);
+  const lastGroup    = useStore((s) => s.lastGroup);
   const setLastCategory = useStore((s) => s.setLastCategory);
   const setLastPayment  = useStore((s) => s.setLastPayment);
+  const setLastGroup    = useStore((s) => s.setLastGroup);
 
   const [rawAmount, setRawAmount]     = useState('0');
   const [category, setCategory]       = useState<Category>(lastCategory);
   const [payment, setPayment]         = useState<PaymentMethod>(lastPayment);
+  const [group, setGroup]             = useState<Group>(lastGroup);
   const [note, setNote]               = useState('');
   const [noteOpen, setNoteOpen]       = useState(false);
 
@@ -34,17 +38,19 @@ export default function LogSheet() {
         setRawAmount(expenseToEdit.amount.toString());
         setCategory(expenseToEdit.category);
         setPayment(expenseToEdit.paymentMethod);
+        setGroup(expenseToEdit.group || 'personal');
         setNote(expenseToEdit.note || '');
         setNoteOpen(!!expenseToEdit.note);
       } else {
         setRawAmount('0');
         setCategory(lastCategory);
         setPayment(lastPayment);
+        setGroup(lastGroup);
         setNote('');
         setNoteOpen(false);
       }
     }
-  }, [sheetOpen, expenseToEdit, lastCategory, lastPayment]);
+  }, [sheetOpen, expenseToEdit, lastCategory, lastPayment, lastGroup]);
 
   // Lock body scroll while sheet is open
   useEffect(() => {
@@ -83,6 +89,7 @@ export default function LogSheet() {
         amount: amountValue,
         category,
         paymentMethod: payment,
+        group,
         note: note.trim() || undefined,
       };
       await updateExpense(updatedExpense);
@@ -93,6 +100,7 @@ export default function LogSheet() {
         amount: amountValue,
         category,
         paymentMethod: payment,
+        group,
         note: note.trim() || undefined,
         createdAt: new Date().toISOString(),
       };
@@ -102,11 +110,13 @@ export default function LogSheet() {
     
     setLastCategory(category);
     setLastPayment(payment);
+    setLastGroup(group);
     closeSheet();
   };
 
   const handleCategoryChange = (c: Category) => setCategory(c);
   const handlePaymentChange  = (p: PaymentMethod) => setPayment(p);
+  const handleGroupChange    = (g: Group) => setGroup(g);
 
   return (
     <>
@@ -148,6 +158,12 @@ export default function LogSheet() {
 
         {/* Payment chips */}
         <PaymentChips selected={payment} onSelect={handlePaymentChange} />
+
+        {/* Divider */}
+        <div className="h-px bg-border mx-4 my-4" />
+
+        {/* Group chips */}
+        <GroupChips selected={group} onSelect={handleGroupChange} />
 
         {/* Note toggle */}
         <div className="px-4 mt-3">
