@@ -1,10 +1,11 @@
 import { openDB, type IDBPDatabase } from 'idb';
-import type { Expense, CustomGroup } from '../types/expense';
+import type { Expense, CustomGroup, Budget } from '../types/expense';
 
 const DB_NAME = 'expense-mobile';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 const STORE = 'expenses';
 const GROUP_STORE = 'groups';
+const BUDGET_STORE = 'budgets';
 
 let dbPromise: Promise<IDBPDatabase> | null = null;
 
@@ -18,6 +19,9 @@ function getDB(): Promise<IDBPDatabase> {
         }
         if (oldVersion < 2) {
           db.createObjectStore(GROUP_STORE, { keyPath: 'id' });
+        }
+        if (oldVersion < 3) {
+          db.createObjectStore(BUDGET_STORE, { keyPath: 'id' });
         }
       },
     });
@@ -73,4 +77,19 @@ export async function insertGroup(group: CustomGroup): Promise<void> {
 export async function deleteGroup(id: string): Promise<void> {
   const db = await getDB();
   await db.delete(GROUP_STORE, id);
+}
+
+export async function getAllBudgets(): Promise<Budget[]> {
+  const db = await getDB();
+  return db.getAll(BUDGET_STORE);
+}
+
+export async function saveBudget(budget: Budget): Promise<void> {
+  const db = await getDB();
+  await db.put(BUDGET_STORE, budget);
+}
+
+export async function deleteBudget(id: string): Promise<void> {
+  const db = await getDB();
+  await db.delete(BUDGET_STORE, id);
 }

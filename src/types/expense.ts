@@ -54,3 +54,9 @@ export const PAYMENT_META: Record<
   upi: { label: 'UPI', icon: '📲' },
   card: { label: 'Card', icon: '💳' },
 };
+
+export interface Budget {
+  id: string; // matches category id or group id
+  type: 'category' | 'group';
+  amount: number;
+}

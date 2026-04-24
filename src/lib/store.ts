@@ -7,8 +7,11 @@ import {
   getAllGroups,
   insertGroup,
   deleteGroup as dbDeleteGroup,
+  getAllBudgets,
+  saveBudget as dbSaveBudget,
+  deleteBudget as dbDeleteBudget,
 } from './db';
-import type { Category, CustomGroup, Expense, Group, PaymentMethod } from '../types/expense';
+import type { Category, CustomGroup, Expense, Group, PaymentMethod, Budget } from '../types/expense';
 
 interface AppState {
   // ── Expense data ──────────────────────────────────
@@ -26,6 +29,12 @@ interface AppState {
   loadGroups: () => Promise<void>;
   addGroup: (group: CustomGroup) => Promise<void>;
   removeGroup: (id: string) => Promise<void>;
+
+  // ── Budget data ───────────────────────────────────
+  budgets: Budget[];
+  loadBudgets: () => Promise<void>;
+  updateBudget: (budget: Budget) => Promise<void>;
+  removeBudget: (id: string) => Promise<void>;
 
   // ── Log sheet state ───────────────────────────────
   sheetOpen: boolean;
@@ -52,6 +61,7 @@ export const useStore = create<AppState>((set, get) => ({
   expenses: [],
   deletedExpenses: [],
   customGroups: [],
+  budgets: [],
 
   loadExpenses: async () => {
     const all = await getAllExpenses();
@@ -141,6 +151,28 @@ export const useStore = create<AppState>((set, get) => ({
       customGroups: state.customGroups.filter((g) => g.id !== id),
       // If lastGroup was the one deleted, reset to personal
       lastGroup: get().lastGroup === id ? 'personal' : get().lastGroup,
+    }));
+  },
+
+  // ── Budget data ───────────────────────────────────
+  loadBudgets: async () => {
+    const b = await getAllBudgets();
+    set({ budgets: b });
+  },
+
+  updateBudget: async (budget: Budget) => {
+    await dbSaveBudget(budget);
+    set((state) => ({
+      budgets: state.budgets.find(b => b.id === budget.id)
+        ? state.budgets.map(b => b.id === budget.id ? budget : b)
+        : [...state.budgets, budget]
+    }));
+  },
+
+  removeBudget: async (id: string) => {
+    await dbDeleteBudget(id);
+    set((state) => ({
+      budgets: state.budgets.filter(b => b.id !== id)
     }));
   },
 
