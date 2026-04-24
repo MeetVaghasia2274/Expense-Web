@@ -1,4 +1,4 @@
-# Expense Mobile — PWA Web App Prompt
+# Expense Web — PWA Web App Prompt
 
 ## Project Overview
 

@@ -9,7 +9,7 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['icon-192.png', 'icon-512.png'],
       manifest: {
-        name: 'Expense Mobile',
+        name: 'Expense Web',
         short_name: 'Expenses',
         description: 'Fast expense tracker for your phone',
         theme_color: '#2DD4BF',

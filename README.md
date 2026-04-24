@@ -1,4 +1,4 @@
-# Expense Mobile
+# Expense Web
 A lightning-fast, offline-first Progressive Web App (PWA) expense tracker designed for iOS & Android mobile browsers.
 
 ## 🚀 Features
