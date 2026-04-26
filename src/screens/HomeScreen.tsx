@@ -4,6 +4,7 @@ import MonthHeader from '../components/MonthHeader';
 import ExpenseRow from '../components/ExpenseRow';
 import BottomNav from '../components/BottomNav';
 import LogSheet from '../components/LogSheet';
+import { SkeletonSection, SkeletonHomeHeader } from '../components/SkeletonLoader';
 
 function isToday(dateStr: string): boolean {
   const d = new Date(dateStr);
@@ -36,10 +37,11 @@ function formatSectionDate(dateStr: string): string {
 }
 
 export default function HomeScreen() {
-  const expenses = useStore((s) => s.expenses);
+  const expenses   = useStore((s) => s.expenses);
+  const isLoading  = useStore((s) => s.isLoading);
   const loadExpenses = useStore((s) => s.loadExpenses);
-  const loadGroups = useStore((s) => s.loadGroups);
-  const openSheet = useStore((s) => s.openSheet);
+  const loadGroups   = useStore((s) => s.loadGroups);
+  const openSheet    = useStore((s) => s.openSheet);
   const toastMessage = useStore((s) => s.toastMessage);
 
   useEffect(() => {
@@ -100,8 +102,14 @@ export default function HomeScreen() {
         <div className="text-[28px]">📅</div>
       </div>
 
-      {/* Expense list */}
-      {expenses.length === 0 ? (
+      {/* Expense list — skeleton while loading */}
+      {isLoading ? (
+        <div className="flex flex-col gap-4 px-4">
+          <SkeletonHomeHeader />
+          <SkeletonSection />
+          <SkeletonSection />
+        </div>
+      ) : expenses.length === 0 ? (
         <div className="flex flex-col items-center justify-center flex-1 gap-3 text-text-secondary mt-16">
           <span className="text-[52px]">🧾</span>
           <p className="text-[15px] font-medium">No expenses yet</p>
@@ -127,28 +135,6 @@ export default function HomeScreen() {
         </div>
       )}
 
-      {/* FAB */}
-      <button
-        className="fab"
-        onClick={openSheet}
-        aria-label="Log new expense"
-        id="open-log-sheet-btn"
-      >
-        +
-      </button>
-
-      {/* Bottom nav */}
-      <BottomNav />
-
-      {/* Log sheet */}
-      <LogSheet />
-
-      {/* Toast */}
-      {toastMessage && (
-        <div className="toast" role="status" aria-live="polite">
-          ✓ {toastMessage}
-        </div>
-      )}
     </div>
   );
 }

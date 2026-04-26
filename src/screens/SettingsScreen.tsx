@@ -524,14 +524,8 @@ export default function SettingsScreen() {
 
       </div>
 
-      <BottomNav />
-      <LogSheet />
 
-      {toastMessage && (
-        <div className="toast" role="status" aria-live="polite">
-          ✓ {toastMessage}
-        </div>
-      )}
+
 
       {/* Full-screen Recently Deleted Overlay */}
       {showDeleted && (

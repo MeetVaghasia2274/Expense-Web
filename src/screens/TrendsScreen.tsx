@@ -8,9 +8,7 @@ import { useStore } from '../lib/store';
 import { getExpensesByMonth } from '../lib/db';
 import type { Category, Expense, Group } from '../types/expense';
 import { CATEGORY_META, SYSTEM_GROUPS } from '../types/expense';
-import BottomNav from '../components/BottomNav';
 import ExpenseRow from '../components/ExpenseRow';
-import LogSheet from '../components/LogSheet';
 
 const CATEGORY_COLORS: Record<Category, string> = {
   food: '#FB923C',
@@ -487,14 +485,6 @@ export default function TrendsScreen() {
         </div>
       )}
 
-      <BottomNav />
-      <LogSheet />
-
-      {toastMessage && (
-        <div className="toast" role="status" aria-live="polite">
-          ✓ {toastMessage}
-        </div>
-      )}
     </div>
   );
 }
