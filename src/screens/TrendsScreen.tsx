@@ -46,7 +46,6 @@ export default function TrendsScreen() {
   const loadGroups   = useStore((s) => s.loadGroups);
   const loadBudgets  = useStore((s) => s.loadBudgets);
   const removeGroup  = useStore((s) => s.removeGroup);
-  const toastMessage = useStore((s) => s.toastMessage);
 
   useEffect(() => {
     loadExpenses();

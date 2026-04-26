@@ -2,8 +2,6 @@ import { useState, useRef, useEffect } from 'react';
 import { useStore } from '../lib/store';
 import { supabase } from '../lib/supabase';
 import { insertExpense, getAllExpenses } from '../lib/db';
-import BottomNav from '../components/BottomNav';
-import LogSheet from '../components/LogSheet';
 import type { Expense, Category, PaymentMethod } from '../types/expense';
 import { CATEGORY_META, PAYMENT_META, SYSTEM_GROUPS } from '../types/expense';
 import { jsPDF } from 'jspdf';
@@ -11,7 +9,6 @@ import { jsPDF } from 'jspdf';
 export default function SettingsScreen() {
   const loadExpenses = useStore((s) => s.loadExpenses);
   const showToast    = useStore((s) => s.showToast);
-  const toastMessage = useStore((s) => s.toastMessage);
   const deletedExpenses = useStore((s) => s.deletedExpenses);
   const permanentlyDeleteExpense = useStore((s) => s.permanentlyDeleteExpense);
   const restoreExpense = useStore((s) => s.restoreExpense);

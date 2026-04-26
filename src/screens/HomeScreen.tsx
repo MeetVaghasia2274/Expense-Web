@@ -2,8 +2,6 @@ import { useEffect, useMemo } from 'react';
 import { useStore } from '../lib/store';
 import MonthHeader from '../components/MonthHeader';
 import ExpenseRow from '../components/ExpenseRow';
-import BottomNav from '../components/BottomNav';
-import LogSheet from '../components/LogSheet';
 import { SkeletonSection, SkeletonHomeHeader } from '../components/SkeletonLoader';
 
 function isToday(dateStr: string): boolean {
@@ -41,8 +39,6 @@ export default function HomeScreen() {
   const isLoading  = useStore((s) => s.isLoading);
   const loadExpenses = useStore((s) => s.loadExpenses);
   const loadGroups   = useStore((s) => s.loadGroups);
-  const openSheet    = useStore((s) => s.openSheet);
-  const toastMessage = useStore((s) => s.toastMessage);
 
   useEffect(() => {
     loadExpenses();
