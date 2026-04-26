@@ -28,6 +28,7 @@ interface AppState {
   // ── Expense data ──────────────────────────────────
   expenses: Expense[];
   deletedExpenses: Expense[];
+  isLoading: boolean;
   loadExpenses: () => Promise<void>;
   addExpense: (expense: Expense) => Promise<void>;
   updateExpense: (expense: Expense) => Promise<void>;
@@ -97,10 +98,12 @@ export const useStore = create<AppState>((set, get) => ({
   // ── Expense data ──────────────────────────────────
   expenses: [],
   deletedExpenses: [],
+  isLoading: true,
   customGroups: [],
   budgets: [],
 
   loadExpenses: async () => {
+    set({ isLoading: true });
     const all = await getAllExpenses();
     const now = Date.now();
     const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
@@ -121,7 +124,7 @@ export const useStore = create<AppState>((set, get) => ({
       }
     }
 
-    set({ expenses: active, deletedExpenses: deleted });
+    set({ expenses: active, deletedExpenses: deleted, isLoading: false });
   },
 
   addExpense: async (expense: Expense) => {
