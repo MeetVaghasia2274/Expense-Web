@@ -3,13 +3,15 @@ A lightning-fast, offline-first Progressive Web App (PWA) expense tracker design
 
 ## 🚀 Features
 - **Extremely Fast Logging**: Designed to minimize time taken to log expenses, under 10 seconds. Snappy Bottom Sheet with custom numpad. 
-- **Offline First**: Fully caches core assets and uses IndexedDB for storing expenses. It works perfectly without an internet connection.
+- **Cloud Sync & Auth**: Secure your data with Email/Password login. Your expenses are automatically backed up to Supabase and synced across all your devices.
+- **Offline First**: Fully caches core assets and uses IndexedDB for storing expenses. It works perfectly without an internet connection and syncs automatically when you're back online.
 - **PWA Ready**: Can be installed to the home screen (iOS Safari "Add to Home Screen"). Works seamlessly like a native app.
-- **Swipe Actions**: Swipe left on items in the ledger to quickly delete.
-- **Trends & Charts**: Visual data breakdown across 6 months via Recharts (Bar & Pie donuts).
+- **Swipe Actions**: Swipe left on items in the ledger to quickly delete/edit.
+- **Trends & Charts**: Visual data breakdown across 6 months via Recharts (Bar, Radar, & Pie charts).
 
 ## 🛠 Tech Stack
 - Frontend: `React 18`, `TypeScript`, `Vite`
+- Backend: `Supabase` (Auth, PostgreSQL)
 - DB/State: `IndexedDB` (via `idb`) & `Zustand`
 - Styling: `Tailwind CSS`, custom Variables + Reset properties
 - Service Worker: `vite-plugin-pwa`
