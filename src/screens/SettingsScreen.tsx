@@ -526,7 +526,7 @@ export default function SettingsScreen() {
 
       {/* Full-screen Recently Deleted Overlay */}
       {showDeleted && (
-        <div className="fixed inset-0 bg-bg-primary z-50 flex flex-col pb-[80px] overflow-y-auto max-w-[430px] left-1/2 -translate-x-1/2 border-x border-bg-tertiary shadow-2xl">
+        <div className="fixed inset-y-0 w-full max-w-[430px] left-1/2 -translate-x-1/2 bg-bg-primary z-[60] flex flex-col pb-[80px] overflow-y-auto border-x border-bg-tertiary shadow-2xl animate-fade-in">
           <div 
             className="flex items-center px-4 pb-4 border-b border-border bg-bg-primary sticky top-0"
             style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 24px)' }}
@@ -602,7 +602,7 @@ export default function SettingsScreen() {
 
       {/* Full-screen Budgets Overlay */}
       {showBudgets && (
-        <div className="fixed inset-0 bg-bg-primary z-50 flex flex-col pb-[80px] overflow-y-auto max-w-[430px] left-1/2 -translate-x-1/2 border-x border-bg-tertiary shadow-2xl">
+        <div className="fixed inset-y-0 w-full max-w-[430px] left-1/2 -translate-x-1/2 bg-bg-primary z-[60] flex flex-col pb-[80px] overflow-y-auto border-x border-bg-tertiary shadow-2xl animate-fade-in">
           <div 
             className="flex items-center px-4 pb-4 border-b border-border bg-bg-primary sticky top-0"
             style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 24px)' }}
@@ -690,7 +690,7 @@ export default function SettingsScreen() {
       )}
       {/* Full-screen Export Options Overlay */}
       {showExportOptions && (
-        <div className="fixed inset-0 bg-bg-primary z-50 flex flex-col pb-[80px] overflow-y-auto max-w-[430px] left-1/2 -translate-x-1/2 border-x border-bg-tertiary shadow-2xl">
+        <div className="fixed inset-y-0 w-full max-w-[430px] left-1/2 -translate-x-1/2 bg-bg-primary z-[60] flex flex-col pb-[80px] overflow-y-auto border-x border-bg-tertiary shadow-2xl animate-fade-in">
           <div 
             className="flex items-center px-4 pb-4 border-b border-border bg-bg-primary sticky top-0"
             style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 24px)' }}
