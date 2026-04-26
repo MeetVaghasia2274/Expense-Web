@@ -25,11 +25,17 @@ export default function SettingsScreen() {
   const [loading, setLoading] = useState(false);
   const [showDeleted, setShowDeleted] = useState(false);
   const [showBudgets, setShowBudgets] = useState(false);
+  const [showExportOptions, setShowExportOptions] = useState(false);
+  
+  const [exportRange, setExportRange] = useState<'all' | 'month' | 'last30' | 'custom'>('all');
+  const [customStart, setCustomStart] = useState('');
+  const [customEnd, setCustomEnd] = useState('');
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleExport = async () => {
+  const handleExport = async (filterData?: Expense[]) => {
     try {
-      const data = (await getAllExpenses()).filter((e) => !e.deletedAt);
+      const data = filterData || (await getAllExpenses()).filter((e) => !e.deletedAt);
       if (data.length === 0) { showToast('No expenses to export'); return; }
 
       const doc = new jsPDF({ unit: 'mm', format: 'a4' });
@@ -64,6 +70,31 @@ export default function SettingsScreen() {
       doc.setTextColor(90, 90, 110);
       doc.text(`${data.length} transactions`, margin + 4, y + 13);
       y += 26;
+
+      // ── Category Summary ───────────────────────────────
+      const catTotals: Record<string, number> = {};
+      data.forEach(e => {
+        catTotals[e.category] = (catTotals[e.category] || 0) + e.amount;
+      });
+
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(30, 30, 46);
+      doc.text('Category Summary', margin, y);
+      y += 6;
+
+      Object.entries(catTotals).sort((a,b) => b[1] - a[1]).forEach(([catId, amt]) => {
+        const meta = CATEGORY_META[catId as Category];
+        doc.setFontSize(8.5);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(90, 90, 110);
+        doc.text(`${meta?.emoji || ''} ${meta?.label || catId}`, margin + 2, y);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(30, 30, 46);
+        doc.text(`Rs. ${amt.toLocaleString('en-IN')}`, pageW - margin - 2, y, { align: 'right' });
+        y += 5.5;
+      });
+      y += 10;
 
       // ── Table header ───────────────────────────────────
       const cols = { date: margin, cat: margin + 32, pay: margin + 82, note: margin + 110, amt: pageW - margin };
@@ -122,6 +153,74 @@ export default function SettingsScreen() {
       console.error(error);
       alert('Failed to export PDF');
     }
+  };
+
+  const handleExportCSV = async (filterData?: Expense[]) => {
+    try {
+      const data = filterData || (await getAllExpenses()).filter((e) => !e.deletedAt);
+      if (data.length === 0) { showToast('No expenses to export'); return; }
+
+      const headers = ['Date', 'Category', 'Group', 'Payment Method', 'Amount', 'Note'];
+      const rows = data.map((e) => [
+        new Date(e.createdAt).toLocaleDateString('en-IN'),
+        CATEGORY_META[e.category]?.label || e.category,
+        e.group || 'personal',
+        PAYMENT_META[e.paymentMethod]?.label || e.paymentMethod,
+        e.amount,
+        e.note || '',
+      ]);
+
+      const csvContent = [
+        headers.join(','),
+        ...rows.map((row) => row.map((val) => `"${String(val).replace(/"/g, '""')}"`).join(',')),
+      ].join('\n');
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `expenses_${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      showToast('CSV exported!');
+    } catch (error) {
+      console.error(error);
+      alert('Failed to export CSV');
+    }
+  };
+  const handleAdvancedExport = async (type: 'pdf' | 'csv') => {
+    const all = (await getAllExpenses()).filter(e => !e.deletedAt);
+    let filtered = all;
+
+    if (exportRange === 'month') {
+      const now = new Date();
+      filtered = all.filter(e => {
+        const d = new Date(e.createdAt);
+        return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+      });
+    } else if (exportRange === 'last30') {
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      filtered = all.filter(e => new Date(e.createdAt) >= thirtyDaysAgo);
+    } else if (exportRange === 'custom' && customStart && customEnd) {
+      const start = new Date(customStart);
+      const end = new Date(customEnd);
+      end.setHours(23, 59, 59, 999);
+      filtered = all.filter(e => {
+        const d = new Date(e.createdAt);
+        return d >= start && d <= end;
+      });
+    }
+
+    if (filtered.length === 0) {
+      showToast('No expenses in this range');
+      return;
+    }
+
+    if (type === 'pdf') await handleExport(filtered);
+    else await handleExportCSV(filtered);
+    setShowExportOptions(false);
   };
 
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -196,14 +295,14 @@ export default function SettingsScreen() {
           <div className="bg-bg-secondary border border-border rounded-2xl overflow-hidden flex flex-col">
             
             <button 
-              onClick={handleExport}
-              className="flex items-center justify-between px-4 py-4 border-b border-border text-left disabled:opacity-50"
+              onClick={() => setShowExportOptions(true)}
+              className="flex items-center justify-between px-4 py-4 border-b border-border text-left"
             >
               <div>
-                <p className="text-text-primary font-medium text-[15px]">Export PDF Report</p>
-                <p className="text-text-secondary text-[13px] mt-0.5">Download all expenses as a formatted PDF</p>
+                <p className="text-text-primary font-medium text-[15px]">Export & Filter</p>
+                <p className="text-text-secondary text-[13px] mt-0.5">Export PDF/CSV with date ranges</p>
               </div>
-              <span className="text-[20px]">📄</span>
+              <span className="text-[20px]">📤</span>
             </button>
 
             <button 
@@ -212,8 +311,8 @@ export default function SettingsScreen() {
               className="flex items-center justify-between px-4 py-4 border-b border-border text-left disabled:opacity-50"
             >
               <div>
-                <p className="text-text-primary font-medium text-[15px]">Restore Data</p>
-                <p className="text-text-secondary text-[13px] mt-0.5">Import from a JSON backup file</p>
+                <p className="text-text-primary font-medium text-[15px]">Restore JSON Backup</p>
+                <p className="text-text-secondary text-[13px] mt-0.5">Import from a previous export</p>
               </div>
               <span className="text-[20px]">⬆️</span>
             </button>
@@ -439,6 +538,97 @@ export default function SettingsScreen() {
                     );
                   })}
                 </div>
+              </section>
+
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Full-screen Export Options Overlay */}
+      {showExportOptions && (
+        <div className="fixed inset-0 bg-bg-primary z-50 flex flex-col pb-[80px] overflow-y-auto max-w-[430px] left-1/2 -translate-x-1/2 border-x border-bg-tertiary shadow-2xl">
+          <div 
+            className="flex items-center px-4 pb-4 border-b border-border bg-bg-primary sticky top-0"
+            style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 24px)' }}
+          >
+            <button 
+              onClick={() => setShowExportOptions(false)}
+              className="w-10 h-10 flex items-center justify-center rounded-full bg-bg-tertiary text-text-primary text-lg mr-2"
+            >
+              ‹
+            </button>
+            <h1 className="text-text-primary font-semibold text-[20px]">Export Options</h1>
+          </div>
+
+          <div className="px-4 py-6">
+            <div className="flex flex-col gap-6">
+              
+              <section>
+                <h3 className="text-text-secondary text-[12px] font-semibold uppercase tracking-wider mb-4 pl-1">Date Range</h3>
+                <div className="flex flex-col gap-2">
+                  {[
+                    { id: 'all', label: 'All Time' },
+                    { id: 'month', label: 'Current Month' },
+                    { id: 'last30', label: 'Last 30 Days' },
+                    { id: 'custom', label: 'Custom Range' },
+                  ].map((range) => (
+                    <button
+                      key={range.id}
+                      onClick={() => setExportRange(range.id as any)}
+                      className={`flex items-center justify-between px-4 py-3 rounded-xl border transition-all ${
+                        exportRange === range.id 
+                        ? 'bg-accent/10 border-accent text-accent' 
+                        : 'bg-bg-secondary border-border text-text-secondary'
+                      }`}
+                    >
+                      <span className="font-medium">{range.label}</span>
+                      {exportRange === range.id && <span>✓</span>}
+                    </button>
+                  ))}
+                </div>
+              </section>
+
+              {exportRange === 'custom' && (
+                <section className="animate-fade-in">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-text-secondary text-[11px] font-semibold uppercase ml-1">Start Date</label>
+                      <input 
+                        type="date" 
+                        value={customStart}
+                        onChange={(e) => setCustomStart(e.target.value)}
+                        className="bg-bg-secondary border border-border rounded-xl px-3 py-2.5 text-text-primary outline-none focus:border-accent"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-text-secondary text-[11px] font-semibold uppercase ml-1">End Date</label>
+                      <input 
+                        type="date" 
+                        value={customEnd}
+                        onChange={(e) => setCustomEnd(e.target.value)}
+                        className="bg-bg-secondary border border-border rounded-xl px-3 py-2.5 text-text-primary outline-none focus:border-accent"
+                      />
+                    </div>
+                  </div>
+                </section>
+              )}
+
+              <section className="mt-4 flex flex-col gap-3">
+                <h3 className="text-text-secondary text-[12px] font-semibold uppercase tracking-wider mb-1 pl-1">Format</h3>
+                <button 
+                  onClick={() => handleAdvancedExport('pdf')}
+                  className="w-full py-4 rounded-2xl bg-bg-secondary border border-border flex items-center justify-center gap-3 active:scale-[0.98] transition-all"
+                >
+                  <span className="text-[20px]">📄</span>
+                  <span className="text-text-primary font-bold">Export as PDF</span>
+                </button>
+                <button 
+                  onClick={() => handleAdvancedExport('csv')}
+                  className="w-full py-4 rounded-2xl bg-bg-secondary border border-border flex items-center justify-center gap-3 active:scale-[0.98] transition-all"
+                >
+                  <span className="text-[20px]">📊</span>
+                  <span className="text-text-primary font-bold">Export as CSV</span>
+                </button>
               </section>
 
             </div>
