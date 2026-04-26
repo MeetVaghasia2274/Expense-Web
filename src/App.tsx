@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import HomeScreen from './screens/HomeScreen';
 import TrendsScreen from './screens/TrendsScreen';
 import SettingsScreen from './screens/SettingsScreen';
+import { useStore } from './lib/store';
 
 // ── iOS "Add to Home Screen" banner ────────────────────────────
 function IOSInstallBanner() {
@@ -79,6 +80,12 @@ function IOSInstallBanner() {
 
 // ── App ────────────────────────────────────────────────────────
 export default function App() {
+  const initializeAuth = useStore(s => s.initializeAuth);
+
+  useEffect(() => {
+    initializeAuth();
+  }, [initializeAuth]);
+
   return (
     <BrowserRouter>
       <Routes>
