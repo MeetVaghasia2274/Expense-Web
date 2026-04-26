@@ -55,7 +55,7 @@ export async function getExpensesByMonth(
   const all = await getAllExpenses();
   return all.filter((e) => {
     const d = new Date(e.createdAt);
-    return d.getFullYear() === year && d.getMonth() === month;
+    return d.getFullYear() === year && d.getMonth() === month && !e.deletedAt;
   });
 }
 
@@ -71,7 +71,7 @@ export async function getAllGroups(): Promise<CustomGroup[]> {
 
 export async function insertGroup(group: CustomGroup): Promise<void> {
   const db = await getDB();
-  await db.add(GROUP_STORE, group);
+  await db.put(GROUP_STORE, group);
 }
 
 export async function deleteGroup(id: string): Promise<void> {
