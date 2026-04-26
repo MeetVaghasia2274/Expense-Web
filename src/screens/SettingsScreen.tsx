@@ -1,5 +1,6 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useStore } from '../lib/store';
+import { supabase } from '../lib/supabase';
 import { insertExpense, getAllExpenses } from '../lib/db';
 import BottomNav from '../components/BottomNav';
 import LogSheet from '../components/LogSheet';
@@ -26,7 +27,31 @@ export default function SettingsScreen() {
   const [showDeleted, setShowDeleted] = useState(false);
   const [showBudgets, setShowBudgets] = useState(false);
   const [showExportOptions, setShowExportOptions] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showRecoveryModal, setShowRecoveryModal] = useState(false);
+  const [isSignUp, setIsSignUp] = useState(false);
   
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [authLoading, setAuthLoading] = useState(false);
+
+  const user = useStore((s) => s.user);
+  const signOut = useStore((s) => s.signOut);
+  const syncWithCloud = useStore((s) => s.syncWithCloud);
+  const lastSynced = useStore((s) => s.lastSynced);
+  const isSyncing = useStore((s) => s.isSyncing);
+  const clearTrash = useStore((s) => s.clearTrash);
+
+  const formatLastSynced = () => {
+    if (!lastSynced) return 'Never synced';
+    const diff = Date.now() - lastSynced;
+    if (diff < 10000) return 'Up to date';
+    if (diff < 60000) return 'Just now';
+    if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+    return new Date(lastSynced).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
   const [exportRange, setExportRange] = useState<'all' | 'month' | 'last30' | 'custom'>('all');
   const [customStart, setCustomStart] = useState('');
   const [customEnd, setCustomEnd] = useState('');
@@ -276,6 +301,68 @@ export default function SettingsScreen() {
     showToast('Dummy data loaded!');
   };
 
+  const handleAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password) return;
+    setAuthLoading(true);
+    try {
+      if (isSignUp) {
+        const { error } = await supabase.auth.signUp({ email, password });
+        if (error) throw error;
+        showToast('Signed up! Check email if confirmation is on.');
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        showToast('Welcome back!');
+      }
+      setShowAuthModal(false);
+    } catch (error: any) {
+      alert(error.message || 'Authentication failed');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (!email) { alert('Please enter your email first'); return; }
+    setAuthLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin + '/settings?recovery=true',
+      });
+      if (error) throw error;
+      showToast('Recovery email sent!');
+    } catch (error: any) {
+      alert(error.message || 'Failed to send recovery email');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('recovery') === 'true') {
+      setShowRecoveryModal(true);
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, []);
+
+  const handleUpdatePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPassword) return;
+    setAuthLoading(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+      showToast('Password updated!');
+      setShowRecoveryModal(false);
+    } catch (error: any) {
+      alert(error.message || 'Failed to update password');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
   return (
     <div className="flex flex-col min-h-full pb-[80px]">
       <div 
@@ -286,6 +373,62 @@ export default function SettingsScreen() {
       </div>
 
       <div className="px-4 flex flex-col gap-6 mt-4">
+        
+        {/* Account & Cloud Sync */}
+        <section>
+          <h2 className="text-text-secondary text-[12px] font-semibold uppercase tracking-wide mb-3 pl-1">
+            Cloud Sync & Account
+          </h2>
+          <div className="bg-bg-secondary border border-border rounded-2xl overflow-hidden flex flex-col">
+            {!user ? (
+              <button 
+                onClick={() => setShowAuthModal(true)}
+                className="flex items-center justify-between px-4 py-4 text-left"
+              >
+                <div>
+                  <p className="text-text-primary font-medium text-[15px]">Backup to Cloud</p>
+                  <p className="text-text-secondary text-[13px] mt-0.5">Sign in to sync data across devices</p>
+                </div>
+                <span className="text-[20px]">☁️</span>
+              </button>
+            ) : (
+              <div className="flex flex-col">
+                <div className="px-4 py-4 border-b border-border flex items-center justify-between">
+                  <div className="overflow-hidden">
+                    <p className="text-text-primary font-medium text-[15px] truncate">{user.email}</p>
+                    <p className="text-success text-[12px] font-medium mt-0.5 flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-success"></span>
+                      Logged In & Syncing
+                    </p>
+                  </div>
+                  <button 
+                    onClick={() => signOut()}
+                    className="text-danger text-[13px] font-semibold px-3 py-1.5 rounded-lg bg-danger/10"
+                  >
+                    Logout
+                  </button>
+                </div>
+                <button 
+                  onClick={() => syncWithCloud()}
+                  disabled={isSyncing}
+                  className="flex items-center justify-between px-4 py-4 text-left active:bg-bg-tertiary transition-colors disabled:opacity-70"
+                >
+                  <div>
+                    <p className="text-text-primary font-medium text-[15px]">
+                      {isSyncing ? 'Synchronizing...' : 'Sync Now'}
+                    </p>
+                    <p className="text-text-secondary text-[13px] mt-0.5">
+                      Last synced: {formatLastSynced()}
+                    </p>
+                  </div>
+                  <span className={`text-[18px] transition-transform duration-700 ${isSyncing ? 'animate-spin' : ''}`}>
+                    🔄
+                  </span>
+                </button>
+              </div>
+            )}
+          </div>
+        </section>
         
         {/* Data Management Section */}
         <section>
@@ -403,7 +546,17 @@ export default function SettingsScreen() {
             >
               ‹
             </button>
-            <h1 className="text-text-primary font-semibold text-[20px]">Recently Deleted</h1>
+            <h1 className="text-text-primary font-semibold text-[20px] flex-1">Recently Deleted</h1>
+            {deletedExpenses.length > 0 && (
+              <button 
+                onClick={() => {
+                  if (window.confirm('Empty trash permanently? This cannot be undone.')) clearTrash();
+                }}
+                className="text-danger text-[14px] font-bold px-4 py-2 bg-danger/10 rounded-xl active:scale-95 transition-all"
+              >
+                Empty
+              </button>
+            )}
           </div>
 
           <div className="flex-1 px-4 py-4">
@@ -631,6 +784,110 @@ export default function SettingsScreen() {
                 </button>
               </section>
 
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Auth Modal Overlay */}
+      {showAuthModal && (
+        <div className="fixed inset-0 bg-black/60 z-[200] flex items-center justify-center px-6 backdrop-blur-sm">
+          <div className="bg-bg-secondary border border-border w-full max-w-[360px] rounded-[32px] overflow-hidden shadow-2xl animate-fade-in-up">
+            <div className="px-6 pt-8 pb-6 flex flex-col items-center text-center">
+              <div className="w-16 h-16 bg-accent/10 rounded-full flex items-center justify-center text-[32px] mb-4">
+                ☁️
+              </div>
+              <h2 className="text-text-primary text-[20px] font-bold">
+                {isSignUp ? 'Create Account' : 'Welcome Back'}
+              </h2>
+              <p className="text-text-secondary text-[14px] mt-2 leading-relaxed">
+                {isSignUp ? 'Join us to sync your data across devices' : 'Sign in to access your cloud backups'}
+              </p>
+              
+              <form onSubmit={handleAuth} className="w-full mt-8 flex flex-col gap-3">
+                <input 
+                  type="email" 
+                  placeholder="Email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full bg-bg-tertiary border border-border rounded-2xl px-4 py-4 text-text-primary outline-none focus:border-accent transition-all"
+                />
+                <input 
+                  type="password" 
+                  placeholder="Password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full bg-bg-tertiary border border-border rounded-2xl px-4 py-4 text-text-primary outline-none focus:border-accent transition-all"
+                />
+                <button 
+                  type="submit"
+                  disabled={authLoading}
+                  className="w-full py-4 rounded-2xl bg-accent text-bg-primary font-bold text-[16px] active:scale-[0.98] transition-all disabled:opacity-50"
+                >
+                  {authLoading ? 'Please wait...' : (isSignUp ? 'Sign Up' : 'Log In')}
+                </button>
+              </form>
+
+              {!isSignUp && (
+                <button 
+                  onClick={handleResetPassword}
+                  className="mt-2 text-accent text-[13px] font-medium px-4 py-2"
+                >
+                  Forgot Password?
+                </button>
+              )}
+
+              <div className="mt-4 flex items-center gap-2 text-[14px]">
+                <span className="text-text-secondary">
+                  {isSignUp ? 'Already have an account?' : "Don't have an account?"}
+                </span>
+                <button 
+                  onClick={() => setIsSignUp(!isSignUp)}
+                  className="text-accent font-bold"
+                >
+                  {isSignUp ? 'Log In' : 'Sign Up'}
+                </button>
+              </div>
+
+              <button 
+                onClick={() => setShowAuthModal(false)}
+                className="mt-6 text-text-secondary text-[13px] font-medium opacity-50"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Recovery Modal */}
+      {showRecoveryModal && (
+        <div className="fixed inset-0 bg-black/60 z-[200] flex items-center justify-center px-6 backdrop-blur-sm">
+          <div className="bg-bg-secondary border border-border w-full max-w-[360px] rounded-[32px] overflow-hidden shadow-2xl animate-fade-in-up">
+            <div className="px-6 pt-8 pb-6 flex flex-col items-center text-center">
+              <div className="w-16 h-16 bg-accent/10 rounded-full flex items-center justify-center text-[32px] mb-4">
+                🔐
+              </div>
+              <h2 className="text-text-primary text-[20px] font-bold">New Password</h2>
+              <p className="text-text-secondary text-[14px] mt-2">Enter your new secure password.</p>
+              
+              <form onSubmit={handleUpdatePassword} className="w-full mt-8 flex flex-col gap-3">
+                <input 
+                  type="password" 
+                  placeholder="New Password"
+                  required
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="w-full bg-bg-tertiary border border-border rounded-2xl px-4 py-4 text-text-primary outline-none focus:border-accent transition-all"
+                />
+                <button 
+                  type="submit"
+                  disabled={authLoading}
+                  className="w-full py-4 rounded-2xl bg-accent text-bg-primary font-bold text-[16px] active:scale-[0.98] transition-all disabled:opacity-50"
+                >
+                  {authLoading ? 'Updating...' : 'Update Password'}
+                </button>
+              </form>
             </div>
           </div>
         </div>
