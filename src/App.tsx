@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import HomeScreen from './screens/HomeScreen';
 import TrendsScreen from './screens/TrendsScreen';
 import SettingsScreen from './screens/SettingsScreen';
 import { useStore } from './lib/store';
+import BottomNav from './components/BottomNav';
+import LogSheet from './components/LogSheet';
 
 // ── iOS "Add to Home Screen" banner ────────────────────────────
 function IOSInstallBanner() {
@@ -15,7 +17,6 @@ function IOSInstallBanner() {
       'standalone' in navigator && (navigator as { standalone?: boolean }).standalone;
     const dismissed = sessionStorage.getItem('ios-banner-dismissed');
     if (isIOS && !isStandalone && !dismissed) {
-      // Slight delay so it doesn't flash on load
       const t = setTimeout(() => setShow(true), 1500);
       return () => clearTimeout(t);
     }
@@ -78,9 +79,25 @@ function IOSInstallBanner() {
   );
 }
 
+// ── Animated Routes ────────────────────────────────────────────
+function AnimatedRoutes() {
+  const location = useLocation();
+  return (
+    <div key={location.pathname} className="page-enter">
+      <Routes location={location}>
+        <Route path="/"         element={<HomeScreen />} />
+        <Route path="/trends"   element={<TrendsScreen />} />
+        <Route path="/settings" element={<SettingsScreen />} />
+      </Routes>
+    </div>
+  );
+}
+
 // ── App ────────────────────────────────────────────────────────
 export default function App() {
   const initializeAuth = useStore(s => s.initializeAuth);
+  const openSheet     = useStore(s => s.openSheet);
+  const toastMessage  = useStore(s => s.toastMessage);
 
   useEffect(() => {
     initializeAuth();
@@ -88,11 +105,27 @@ export default function App() {
 
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/"        element={<HomeScreen />} />
-        <Route path="/trends"  element={<TrendsScreen />} />
-        <Route path="/settings" element={<SettingsScreen />} />
-      </Routes>
+      <AnimatedRoutes />
+      
+      {/* Global UI elements outside transition container */}
+      <button
+        className="fab"
+        onClick={openSheet}
+        aria-label="Log new expense"
+        id="open-log-sheet-btn"
+      >
+        +
+      </button>
+
+      <BottomNav />
+      <LogSheet />
+      
+      {toastMessage && (
+        <div className="toast" role="status" aria-live="polite">
+          ✓ {toastMessage}
+        </div>
+      )}
+
       <IOSInstallBanner />
     </BrowserRouter>
   );
