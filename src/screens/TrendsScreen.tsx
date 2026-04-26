@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend,
+  Radar, RadarChart, PolarGrid, PolarAngleAxis
 } from 'recharts';
 import { useStore } from '../lib/store';
 import { getExpensesByMonth } from '../lib/db';
@@ -163,6 +164,34 @@ export default function TrendsScreen() {
     }
     return Array.from(map.entries());
   }, [filteredExpenses]);
+
+  const radarData = useMemo(() => {
+    return (Object.keys(CATEGORY_META) as Category[]).map(catId => ({
+      subject: CATEGORY_META[catId].label,
+      value: monthExpenses.filter(e => e.category === catId).reduce((sum, e) => sum + e.amount, 0),
+    })).filter(d => d.value > 0);
+  }, [monthExpenses]);
+
+  const [comparisonData, setComparisonData] = useState<{ name: string; thisMonth: number; prevMonth: number }[]>([]);
+  useEffect(() => {
+    async function fetchComparison() {
+      const prevYear = viewMonth === 0 ? viewYear - 1 : viewYear;
+      const prevMonthIdx = viewMonth === 0 ? 11 : viewMonth - 1;
+      const prevExpenses = await getExpensesByMonth(prevYear, prevMonthIdx);
+      
+      const data = (Object.keys(CATEGORY_META) as Category[]).map(catId => {
+        const thisAmt = monthExpenses.filter(e => e.category === catId).reduce((s, e) => s + e.amount, 0);
+        const prevAmt = prevExpenses.filter(e => e.category === catId).reduce((s, e) => s + e.amount, 0);
+        return {
+          name: CATEGORY_META[catId].label,
+          thisMonth: thisAmt,
+          prevMonth: prevAmt
+        };
+      }).filter(d => d.thisMonth > 0 || d.prevMonth > 0);
+      setComparisonData(data);
+    }
+    fetchComparison();
+  }, [viewYear, viewMonth, monthExpenses]);
 
   return (
     <div className="flex flex-col min-h-full pb-[80px] overflow-x-hidden">
@@ -334,6 +363,54 @@ export default function TrendsScreen() {
           </BarChart>
         </ResponsiveContainer>
       </div>
+
+      {/* Radar Chart — Spending Profile */}
+      {radarData.length >= 3 && (
+        <div className="mx-4 mb-4 rounded-2xl bg-bg-secondary border border-border px-2 py-4">
+          <p className="text-text-secondary text-[12px] font-semibold uppercase tracking-wide px-3 mb-2">
+            Spending Profile
+          </p>
+          <ResponsiveContainer width="100%" height={250}>
+            <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarData}>
+              <PolarGrid stroke="var(--border)" />
+              <PolarAngleAxis dataKey="subject" tick={{ fill: 'var(--text-secondary)', fontSize: 10 }} />
+              <Radar
+                name="Spent"
+                dataKey="value"
+                stroke="var(--accent)"
+                fill="var(--accent)"
+                fillOpacity={0.3}
+              />
+              <Tooltip 
+                contentStyle={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 12 }}
+                itemStyle={{ color: 'var(--accent)' }}
+              />
+            </RadarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
+      {/* Month-over-Month Comparison */}
+      {comparisonData.length > 0 && (
+        <div className="mx-4 mb-4 rounded-2xl bg-bg-secondary border border-border px-2 py-4">
+          <p className="text-text-secondary text-[12px] font-semibold uppercase tracking-wide px-3 mb-3">
+            Month Comparison
+          </p>
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={comparisonData} barGap={4}>
+              <XAxis dataKey="name" tick={{ fill: 'var(--text-secondary)', fontSize: 10 }} axisLine={false} tickLine={false} />
+              <YAxis hide />
+              <Tooltip 
+                contentStyle={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 12 }}
+                cursor={{ fill: 'rgba(128,128,128,0.05)' }}
+              />
+              <Legend verticalAlign="top" height={36} iconType="circle" />
+              <Bar dataKey="prevMonth" name="Last Month" fill="var(--text-secondary)" opacity={0.3} radius={[4, 4, 0, 0]} />
+              <Bar dataKey="thisMonth" name="This Month" fill="var(--accent)" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
 
       {/* Category donut */}
       {pieData.length > 0 && (
