@@ -42,11 +42,12 @@ export default function SettingsScreen() {
 
   const formatLastSynced = () => {
     if (!lastSynced) return 'Never synced';
+    const date = new Date(lastSynced);
     const diff = Date.now() - lastSynced;
-    if (diff < 10000) return 'Up to date';
-    if (diff < 60000) return 'Just now';
-    if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
-    return new Date(lastSynced).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    if (diff < 3600000) return `Today at ${timeStr}`;
+    const dateStr = date.toLocaleDateString([], { day: 'numeric', month: 'short' });
+    return `${dateStr} at ${timeStr}`;
   };
 
   const [exportRange, setExportRange] = useState<'all' | 'month' | 'last30' | 'custom'>('all');
