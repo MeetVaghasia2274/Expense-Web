@@ -30,6 +30,7 @@ export default function LogSheet() {
   const [group, setGroup]             = useState<Group>(lastGroup);
   const [note, setNote]               = useState('');
   const [noteOpen, setNoteOpen]       = useState(false);
+  const [date, setDate]               = useState(new Date().toISOString().split('T')[0]);
 
   // Reset form whenever sheet opens with last-used defaults or edit data
   useEffect(() => {
@@ -41,6 +42,7 @@ export default function LogSheet() {
         setGroup(expenseToEdit.group || 'personal');
         setNote(expenseToEdit.note || '');
         setNoteOpen(!!expenseToEdit.note);
+        setDate(expenseToEdit.createdAt.split('T')[0]);
       } else {
         setRawAmount('0');
         setCategory(lastCategory);
@@ -48,6 +50,7 @@ export default function LogSheet() {
         setGroup(lastGroup);
         setNote('');
         setNoteOpen(false);
+        setDate(new Date().toISOString().split('T')[0]);
       }
     }
   }, [sheetOpen, expenseToEdit, lastCategory, lastPayment, lastGroup]);
@@ -84,6 +87,7 @@ export default function LogSheet() {
     if (amountValue <= 0) return;
     
     if (expenseToEdit) {
+      const timePart = new Date(expenseToEdit.createdAt).toTimeString().split(' ')[0];
       const updatedExpense = {
         ...expenseToEdit,
         amount: amountValue,
@@ -91,10 +95,14 @@ export default function LogSheet() {
         paymentMethod: payment,
         group,
         note: note.trim() || undefined,
+        createdAt: new Date(`${date}T${timePart}`).toISOString(),
       };
       await updateExpense(updatedExpense);
       showToast(`Updated ₹${displayAmount}`);
     } else {
+      const now = new Date();
+      const timePart = now.toTimeString().split(' ')[0];
+      const combinedDate = new Date(`${date}T${timePart}`).toISOString();
       const expense = {
         id: generateId(),
         amount: amountValue,
@@ -102,7 +110,7 @@ export default function LogSheet() {
         paymentMethod: payment,
         group,
         note: note.trim() || undefined,
-        createdAt: new Date().toISOString(),
+        createdAt: combinedDate,
       };
       await addExpense(expense);
       showToast(`Saved ₹${displayAmount}`);
@@ -165,29 +173,43 @@ export default function LogSheet() {
         {/* Group chips */}
         <GroupChips selected={group} onSelect={handleGroupChange} />
 
-        {/* Note toggle */}
-        <div className="px-4 mt-3">
-          {!noteOpen ? (
-            <button
-              className="text-text-secondary text-[13px] flex items-center gap-1.5 py-1"
-              onClick={() => setNoteOpen(true)}
-              id="add-note-btn"
-            >
-              <span>＋</span>
-              <span>Add note</span>
-            </button>
-          ) : (
+        {/* Date Selector & Note Toggle */}
+        <div className="px-4 mt-3 flex items-center justify-between gap-3">
+          {/* Date Picker */}
+          <div className="flex-1 flex flex-col gap-1.5">
+            <span className="text-text-secondary text-[11px] font-semibold uppercase tracking-wide">Date</span>
             <input
-              type="text"
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              placeholder="What's this for?"
-              maxLength={60}
-              autoFocus
-              className="w-full bg-bg-tertiary border border-border rounded-xl px-4 py-3 text-text-primary text-[14px] placeholder-text-secondary outline-none focus:border-accent transition-colors"
-              id="note-input"
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="w-full bg-bg-tertiary border border-border rounded-xl px-3 py-2 text-text-primary text-[14px] outline-none focus:border-accent transition-colors"
             />
-          )}
+          </div>
+
+          {/* Note Input */}
+          <div className="flex-1 flex flex-col gap-1.5">
+            <span className="text-text-secondary text-[11px] font-semibold uppercase tracking-wide">Note</span>
+            {!noteOpen ? (
+              <button
+                className="w-full bg-bg-tertiary border border-border rounded-xl px-3 py-[9px] text-text-secondary text-[14px] flex items-center justify-center gap-1.5 outline-none hover:text-text-primary transition-colors"
+                onClick={() => setNoteOpen(true)}
+                id="add-note-btn"
+              >
+                <span>＋ Add note</span>
+              </button>
+            ) : (
+              <input
+                type="text"
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                placeholder="What's this for?"
+                maxLength={60}
+                autoFocus
+                className="w-full bg-bg-tertiary border border-border rounded-xl px-3 py-2 text-text-primary text-[14px] placeholder-text-secondary outline-none focus:border-accent transition-colors"
+                id="note-input"
+              />
+            )}
+          </div>
         </div>
 
         {/* Save button */}

@@ -26,6 +26,9 @@ export default function SettingsScreen() {
   const [showExportOptions, setShowExportOptions] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showRecoveryModal, setShowRecoveryModal] = useState(false);
+  const [showPasteModal, setShowPasteModal] = useState(false);
+  const [pasteText, setPasteText] = useState('');
+  const [pasteYear, setPasteYear] = useState(new Date().getFullYear());
   const [isSignUp, setIsSignUp] = useState(false);
   
   const [email, setEmail] = useState('');
@@ -273,6 +276,173 @@ export default function SettingsScreen() {
     }
   };
 
+  const handleExportNotes = async () => {
+    try {
+      const all = (await getAllExpenses()).filter(e => !e.deletedAt);
+      if (all.length === 0) { showToast('No expenses to export'); return; }
+
+      let filtered = all;
+      if (exportRange === 'month') {
+        const now = new Date();
+        filtered = all.filter(e => {
+          const d = new Date(e.createdAt);
+          return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+        });
+      } else if (exportRange === 'last30') {
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        filtered = all.filter(e => new Date(e.createdAt) >= thirtyDaysAgo);
+      } else if (exportRange === 'custom' && customStart && customEnd) {
+        const start = new Date(customStart);
+        const end = new Date(customEnd);
+        end.setHours(23, 59, 59, 999);
+        filtered = all.filter(e => {
+          const d = new Date(e.createdAt);
+          return d >= start && d <= end;
+        });
+      }
+
+      if (filtered.length === 0) { showToast('No expenses in this range'); return; }
+
+      filtered.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
+      const grouped: Record<string, Record<number, number[]>> = {};
+      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+      filtered.forEach(e => {
+        const d = new Date(e.createdAt);
+        const year = d.getFullYear();
+        const month = d.getMonth();
+        const day = d.getDate();
+        const key = `${monthNames[month]} ${year}`;
+
+        if (!grouped[key]) grouped[key] = {};
+        if (!grouped[key][day]) grouped[key][day] = [];
+        grouped[key][day].push(e.amount);
+      });
+
+      let output = '';
+      Object.entries(grouped).forEach(([monthYear, days]) => {
+        output += `${monthYear}\n`;
+        Object.entries(days).forEach(([day, amounts]) => {
+          output += `${day}. ${amounts.join(', ')}\n`;
+        });
+        output += '\n';
+      });
+
+      const notesText = output.trim();
+
+      const blob = new Blob([notesText], { type: 'text/plain;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `expenses_notes_${new Date().toISOString().split('T')[0]}.txt`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      showToast('Text notes exported!');
+      setShowExportOptions(false);
+    } catch (error) {
+      console.error(error);
+      alert('Failed to export notes');
+    }
+  };
+
+  const handlePasteImport = async () => {
+    if (!pasteText.trim()) {
+      alert('Please paste some notes first!');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const months: Record<string, number> = {
+        jan: 0, january: 0,
+        feb: 1, february: 1,
+        mar: 2, march: 2,
+        apr: 3, april: 3,
+        may: 4,
+        jun: 5, june: 5,
+        jul: 6, july: 6,
+        aug: 7, august: 7,
+        sep: 8, september: 8,
+        oct: 9, october: 9,
+        nov: 10, november: 10,
+        dec: 11, december: 11
+      };
+
+      const lines = pasteText.split('\n');
+      const expenses: Expense[] = [];
+      
+      let currentYear = pasteYear;
+      let currentMonth = new Date().getMonth();
+
+      for (let line of lines) {
+        line = line.trim();
+        if (!line) continue;
+
+        const monthMatch = line.match(/\b(january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sep|oct|nov|dec)\b/i);
+        if (monthMatch) {
+          const monthStr = monthMatch[1].toLowerCase();
+          currentMonth = months[monthStr];
+          
+          const yearMatch = line.match(/\b(20\d{2})\b/);
+          if (yearMatch) {
+            currentYear = parseInt(yearMatch[1], 10);
+          }
+          continue;
+        }
+
+        const dayMatch = line.match(/^(\d+)(?:\.|\:|\s)\s*(.*)$/);
+        if (dayMatch) {
+          const day = parseInt(dayMatch[1], 10);
+          const valuesString = dayMatch[2].trim();
+          if (!valuesString) continue;
+
+          const numbers = valuesString.match(/\d+(?:\.\d+)?/g);
+          if (numbers) {
+            for (const numStr of numbers) {
+              const amount = parseFloat(numStr);
+              if (amount > 0) {
+                const id = `notes-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+                const dateObj = new Date(currentYear, currentMonth, day, 12, 0, 0);
+                expenses.push({
+                  id,
+                  amount,
+                  category: 'other',
+                  paymentMethod: 'cash',
+                  group: 'personal',
+                  createdAt: dateObj.toISOString()
+                });
+              }
+            }
+          }
+        }
+      }
+
+      if (expenses.length === 0) {
+        alert('No valid expenses found. Make sure it follows the format:\nJan 2026\n1. 26, 20\n2. 10');
+        setLoading(false);
+        return;
+      }
+
+      for (const exp of expenses) {
+        await insertExpense(exp);
+      }
+      
+      await loadExpenses();
+      showToast(`Imported ${expenses.length} expenses from notes!`);
+      setPasteText('');
+      setShowPasteModal(false);
+    } catch (err) {
+      console.error(err);
+      alert('Failed to parse notes text. Check formatting.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const generateDummyData = async () => {
     if (!confirm('This will insert 50 random expenses over the last 3 months. Continue?')) return;
     
@@ -444,6 +614,17 @@ export default function SettingsScreen() {
                 <p className="text-text-secondary text-[13px] mt-0.5">Export PDF/CSV with date ranges</p>
               </div>
               <span className="text-[20px]">📤</span>
+            </button>
+
+            <button 
+              onClick={() => setShowPasteModal(true)}
+              className="flex items-center justify-between px-4 py-4 border-b border-border text-left"
+            >
+              <div>
+                <p className="text-text-primary font-medium text-[15px]">Import from Notes</p>
+                <p className="text-text-secondary text-[13px] mt-0.5">Paste list of expenses from notes</p>
+              </div>
+              <span className="text-[20px]">📝</span>
             </button>
 
             <button 
@@ -774,6 +955,13 @@ export default function SettingsScreen() {
                   <span className="text-[20px]">📊</span>
                   <span className="text-text-primary font-bold">Export as CSV</span>
                 </button>
+                <button 
+                  onClick={handleExportNotes}
+                  className="w-full py-4 rounded-2xl bg-bg-secondary border border-border flex items-center justify-center gap-3 active:scale-[0.98] transition-all"
+                >
+                  <span className="text-[20px]">📝</span>
+                  <span className="text-text-primary font-bold">Export as Text (Notes Format)</span>
+                </button>
               </section>
 
             </div>
@@ -881,6 +1069,84 @@ export default function SettingsScreen() {
                 </button>
               </form>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Full-screen Paste Notes Import Modal */}
+      {showPasteModal && (
+        <div className="fixed inset-y-0 w-full max-w-[430px] left-1/2 -translate-x-1/2 bg-bg-primary z-[60] flex flex-col pb-[80px] overflow-y-auto border-x border-bg-tertiary shadow-2xl animate-fade-in">
+          <div 
+            className="flex items-center px-4 pb-4 border-b border-border bg-bg-primary sticky top-0"
+            style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 24px)' }}
+          >
+            <button 
+              onClick={() => setShowPasteModal(false)}
+              className="w-10 h-10 flex items-center justify-center rounded-full bg-bg-tertiary text-text-primary text-lg mr-2"
+            >
+              ‹
+            </button>
+            <h1 className="text-text-primary font-semibold text-[20px] flex-1">Import from Notes</h1>
+          </div>
+
+          <div className="px-4 py-6 flex flex-col gap-5">
+            {/* Format info card */}
+            <div className="bg-bg-secondary border border-border rounded-2xl p-4">
+              <h3 className="text-accent font-semibold text-[14px] mb-2 flex items-center gap-1.5">
+                <span>📝</span> Supported Note Format
+              </h3>
+              <p className="text-text-secondary text-[12px] leading-relaxed">
+                Paste your notes structured like this. The parser is flexible and ignores blank lines.
+              </p>
+              <pre className="bg-bg-tertiary text-text-primary text-[12px] p-3 rounded-xl mt-3 font-mono leading-relaxed overflow-x-auto">
+{`Jan 2026
+1. 26, 20
+2. 10
+
+Feb
+4. 26
+28. 10`}
+              </pre>
+            </div>
+
+            {/* Default Year Selector */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-text-secondary text-[11px] font-semibold uppercase tracking-wider ml-1">
+                Default Year (if not specified in note)
+              </label>
+              <select
+                value={pasteYear}
+                onChange={(e) => setPasteYear(parseInt(e.target.value, 10))}
+                className="bg-bg-secondary border border-border rounded-xl px-3 py-2.5 text-text-primary outline-none focus:border-accent"
+              >
+                {[0, 1, 2, 3].map((diff) => {
+                  const y = new Date().getFullYear() - diff;
+                  return <option key={y} value={y}>{y}</option>;
+                })}
+              </select>
+            </div>
+
+            {/* Textarea */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-text-secondary text-[11px] font-semibold uppercase tracking-wider ml-1">
+                Paste Note Content
+              </label>
+              <textarea
+                value={pasteText}
+                onChange={(e) => setPasteText(e.target.value)}
+                placeholder="Paste here..."
+                rows={10}
+                className="w-full bg-bg-secondary border border-border rounded-2xl p-4 text-text-primary text-[14px] font-mono placeholder-text-secondary outline-none focus:border-accent transition-colors resize-none"
+              />
+            </div>
+
+            <button
+              onClick={handlePasteImport}
+              disabled={loading || !pasteText.trim()}
+              className="w-full py-4 rounded-2xl bg-accent text-bg-primary font-bold text-[16px] active:scale-[0.98] transition-all disabled:opacity-50 mt-2"
+            >
+              {loading ? 'Importing...' : 'Parse & Import'}
+            </button>
           </div>
         </div>
       )}
