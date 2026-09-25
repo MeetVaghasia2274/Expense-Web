@@ -5,7 +5,6 @@ import { insertExpense, getAllExpenses } from '../lib/db';
 import type { Expense, Category, PaymentMethod } from '../types/expense';
 import { CATEGORY_META, PAYMENT_META, SYSTEM_GROUPS } from '../types/expense';
 import { jsPDF } from 'jspdf';
-import PushNotificationSettings from '../components/PushNotificationSettings';
 
 
 export default function SettingsScreen() {
@@ -544,9 +543,6 @@ export default function SettingsScreen() {
 
       <div className="px-4 flex flex-col gap-6 mt-4">
         
-        {/* Push Notifications */}
-        <PushNotificationSettings />
-
         {/* Account & Cloud Sync */}
         <section>
           <h2 className="text-text-secondary text-[12px] font-semibold uppercase tracking-wide mb-3 pl-1">

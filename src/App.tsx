@@ -6,6 +6,8 @@ import SettingsScreen from './screens/SettingsScreen';
 import { useStore } from './lib/store';
 import BottomNav from './components/BottomNav';
 import LogSheet from './components/LogSheet';
+import { subscribeToPush, getCurrentSubscription } from './lib/push/subscribe';
+
 
 // ── iOS "Add to Home Screen" banner ────────────────────────────
 function IOSInstallBanner() {
@@ -102,6 +104,28 @@ export default function App() {
   useEffect(() => {
     initializeAuth();
   }, [initializeAuth]);
+
+  // ── Auto push subscription (silent, on first launch) ──────────
+  useEffect(() => {
+    if (!('Notification' in window) || !('PushManager' in window)) return;
+    // Only prompt if not already answered
+    if (Notification.permission !== 'default') {
+      // If already granted but no subscription, re-subscribe silently
+      if (Notification.permission === 'granted') {
+        getCurrentSubscription().then((sub) => {
+          if (!sub) subscribeToPush();
+        });
+      }
+      return;
+    }
+    // Delay 3s so the user settles into the app before the iOS prompt appears
+    const t = setTimeout(async () => {
+      const result = await Notification.requestPermission();
+      if (result === 'granted') subscribeToPush();
+    }, 3000);
+    return () => clearTimeout(t);
+  }, []);
+
 
   return (
     <BrowserRouter>
